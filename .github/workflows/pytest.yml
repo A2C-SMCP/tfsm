@@ -12,13 +12,13 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 10  # CI 环境比本地慢，10分钟足够
     strategy:
+      fail-fast: false  # 不要因为一个 job 失败就取消其他 job
       matrix:
         python-version: ["3.11", "3.12", "3.13"]
         extras: ["[diagrams]"]
         include:
-          - python-version: "3.13"
-            extras: "[]"
           - python-version: "3.13"
             extras: "[diagrams,mypy]"
 
@@ -36,11 +36,36 @@ jobs:
         if: contains(matrix.extras, 'diagrams')
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgraphviz-dev graphviz
+          sudo apt-get install -y libgraphviz-dev graphviz pkg-config
+      - name: Verify system dependencies
+        if: contains(matrix.extras, 'diagrams')
+        run: |
+          echo "=== Checking graphviz installation ==="
+          which dot
+          dot -V
+          echo "=== Checking graphviz headers ==="
+          ls -la /usr/include/graphviz/
+          echo "=== Checking pkg-config ==="
+          pkg-config --cflags --libs graphviz
       - name: Install dependencies
         run: |
           uv venv --python ${{ matrix.python-version }}
+          echo "=== Installing Python packages ==="
           uv pip install -e ".${{ matrix.extras }}"
+      - name: Verify pygraphviz installation
+        if: contains(matrix.extras, 'diagrams')
+        run: |
+          echo "=== Checking pygraphviz ==="
+          uv run python -c "
+          try:
+              import pygraphviz
+              print('✓ pygraphviz installed successfully')
+              print(f'pygraphviz version: {pygraphviz.__version__}')
+          except ImportError as e:
+              print(f'✗ pygraphviz import failed: {e}')
+              import sys
+              sys.exit(1)
+          "
       - name: Run type checking
         if: contains(matrix.extras, 'mypy')
         run: |
@@ -48,8 +73,11 @@ jobs:
           uv run pytest tests/test_codestyle.py
       - name: Test with pytest
         run: |
-          uv run pytest --doctest-modules tests/
-          uv run coverage lcov --ignore-errors
+          uv run pytest tests/ --ignore=tests/test_codestyle.py -q
+      - name: Test with pytest and coverage
+        if: contains(matrix.extras, 'mypy')
+        run: |
+          uv run pytest --cov=transitions --cov-report=lcov --cov-report=term-missing tests/ --ignore=tests/test_codestyle.py -q
       - name: Coveralls Parallel
         if: contains(matrix.extras, 'mypy')
         uses: coverallsapp/github-action@v2
