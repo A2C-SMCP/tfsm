@@ -2,7 +2,7 @@
 
 ## 概述
 
-本项目将从支持 Python 2.7/3.8+ 升级到 Python 3.11+，并使用现代 Python 包管理工具 `uv` 进行依赖管理。这是一个破坏性更新，将发布为 transitions 1.0。
+本项目将从支持 Python 2.7/3.8+ 升级到 Python 3.11+，并使用现代 Python 包管理工具 `uv` 进行依赖管理。这是一个破坏性更新，将发布为 tfsm 1.0。
 
 ## 目标
 
@@ -77,7 +77,7 @@ uv run pytest
 
 #### 2.1 移除 `__future__` 导入
 
-**文件**: `transitions/__init__.py`
+**文件**: `tfsm/__init__.py`
 
 ```python
 # 删除这一行
@@ -87,10 +87,10 @@ from __future__ import absolute_import
 #### 2.2 移除 `six` 依赖
 
 **影响文件**:
-- `transitions/core.py`
-- `transitions/extensions/nesting.py`
-- `transitions/extensions/markup.py`
-- `transitions/extensions/factory.py`
+- `tfsm/core.py`
+- `tfsm/extensions/nesting.py`
+- `tfsm/extensions/markup.py`
+- `tfsm/extensions/factory.py`
 
 **替换规则**:
 
@@ -123,7 +123,7 @@ range(10)  # Python 3 的 range 就是迭代器
 
 #### 2.3 移除 Enum 兼容代码
 
-**文件**: `transitions/core.py:16-25`
+**文件**: `tfsm/core.py:16-25`
 
 ```python
 # 替换前
@@ -153,7 +153,7 @@ class State:
 
 #### 2.5 更新 metaclass 语法
 
-**文件**: `transitions/extensions/diagrams_base.py`
+**文件**: `tfsm/extensions/diagrams_base.py`
 
 ```python
 # 替换前
@@ -237,7 +237,7 @@ class AsyncState(State):
 
 #### 4.1 使用 `dataclass` 重构 State 类
 
-**当前** (transitions/core.py:80-150):
+**当前** (tfsm/core.py:80-150):
 ```python
 class State:
     def __init__(self, name, on_enter=None, on_exit=None,
@@ -319,7 +319,7 @@ def resolve_callback(name):
 
 #### 4.5 使用 `match/case` 重构条件逻辑
 
-**示例** - transitions/extensions/nesting.py 可能的逻辑:
+**示例** - tfsm/extensions/nesting.py 可能的逻辑:
 
 ```python
 # 替换前
@@ -375,7 +375,7 @@ class State:
 
 #### 5.2 使用 `asyncio.TaskGroup` (Python 3.11+)
 
-**文件**: `transitions/extensions/asyncio.py`
+**文件**: `tfsm/extensions/asyncio.py`
 
 ```python
 import asyncio
@@ -650,7 +650,7 @@ class AsyncMachine(BaseMachine[Awaitable[bool]]):
 **迁移成本**:
 - 高 - 需要重构整个继承层次
 - 可能破坏现有用户代码
-- 建议作为 transitions 2.0 的主要特性
+- 建议作为 tfsm 2.0 的主要特性
 
 #### 问题 2：动态属性访问
 
@@ -776,7 +776,7 @@ def nested(*contexts: Any) -> Generator[Tuple[Any, ...], None, None]:
 ```
 
 **迁移建议**:
-在 transitions 1.0 或 2.0 中完全移除 Python 2 兼容代码，因为项目已经要求 Python 3.11+。
+在 tfsm 1.0 或 2.0 中完全移除 Python 2 兼容代码，因为项目已经要求 Python 3.11+。
 
 ### 8.3 类型注解最佳实践
 
@@ -820,19 +820,19 @@ def nested(*contexts: Any) -> Generator[Tuple[Any, ...], None, None]:
 
 ### 8.4 未来类型系统改进路线图
 
-**短期** (transitions 1.x):
+**短期** (tfsm 1.x):
 - ✅ 完成所有模块的类型注解
 - ✅ 通过 mypy strict 检查
 - ✅ 添加 __all__ 导出声明
 - 🔄 保持现有架构，使用 type: ignore 处理架构限制
 
-**中期** (transitions 1.1 - 1.5):
+**中期** (tfsm 1.1 - 1.5):
 - 为关键动态属性添加 Protocol 定义
 - 使用 TypeVar 减少类型不兼容
 - 移除 Python 2 遗留代码
 - 优化类型注解，减少 type: ignore 使用
 
-**长期** (transitions 2.0):
+**长期** (tfsm 2.0):
 - 重新设计继承层次，使用泛型基类分离异步/同步实现
 - 显式声明所有动态属性
 - 完全消除 type: ignore 注释
@@ -845,7 +845,7 @@ def nested(*contexts: Any) -> Generator[Tuple[Any, ...], None, None]:
 # .github/workflows/pytest.yml
 - name: Run type checks
   run: |
-    uv run mypy --config-file mypy.ini --strict transitions
+    uv run mypy --config-file mypy.ini --strict tfsm
     uv run pytest tests/test_codestyle.py
 ```
 

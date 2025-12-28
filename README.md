@@ -1,13 +1,13 @@
-# <a name="transitions-module"></a> transitions
+# <a name="transitions-module"></a> tfsm
 
-[![Version](https://img.shields.io/badge/version-v0.9.5-orange.svg)](https://github.com/pytransitions/transitions)
-[![Build Status](https://github.com/pytransitions/transitions/actions/workflows/pytest.yml/badge.svg)](https://github.com/pytransitions/transitions/actions?query=workflow%3Apytest)
-[![Coverage Status](https://coveralls.io/repos/github/pytransitions/transitions/badge.svg?branch=main)](https://coveralls.io/github/pytransitions/transitions?branch=main)
-[![PyPi](https://img.shields.io/pypi/v/transitions.svg)](https://pypi.org/project/transitions)
-[![Copr](https://img.shields.io/badge/dynamic/json?color=blue&label=copr&query=builds.latest.source_package.version&url=https%3A%2F%2Fcopr.fedorainfracloud.org%2Fapi_3%2Fpackage%3Fownername%3Daleneum%26projectname%3Dpython-transitions%26packagename%3Dpython-transitions%26with_latest_build%3DTrue)](https://copr.fedorainfracloud.org/coprs/aleneum/python-transitions/)
-[![GitHub commits](https://img.shields.io/github/commits-since/pytransitions/transitions/0.9.4.svg)](https://github.com/pytransitions/transitions/compare/0.9.4...main)
-[![License](https://img.shields.io/github/license/pytransitions/transitions.svg)](LICENSE)
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/pytransitions/transitions/main?filepath=examples%2FPlayground.ipynb)
+[![Version](https://img.shields.io/badge/version-v0.9.5-orange.svg)](https://github.com/pytransitions/tfsm)
+[![Build Status](https://github.com/pytransitions/tfsm/actions/workflows/pytest.yml/badge.svg)](https://github.com/pytransitions/tfsm/actions?query=workflow%3Apytest)
+[![Coverage Status](https://coveralls.io/repos/github/pytransitions/tfsm/badge.svg?branch=main)](https://coveralls.io/github/pytransitions/tfsm?branch=main)
+[![PyPi](https://img.shields.io/pypi/v/tfsm.svg)](https://pypi.org/project/tfsm)
+[![Copr](https://img.shields.io/badge/dynamic/json?color=blue&label=copr&query=builds.latest.source_package.version&url=https%3A%2F%2Fcopr.fedorainfracloud.org%2Fapi_3%2Fpackage%3Fownername%3Daleneum%26projectname%3Dpython-tfsm%26packagename%3Dpython-tfsm%26with_latest_build%3DTrue)](https://copr.fedorainfracloud.org/coprs/aleneum/python-tfsm/)
+[![GitHub commits](https://img.shields.io/github/commits-since/pytransitions/tfsm/0.9.4.svg)](https://github.com/pytransitions/tfsm/compare/0.9.4...main)
+[![License](https://img.shields.io/github/license/pytransitions/tfsm.svg)](LICENSE)
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/pytransitions/tfsm/main?filepath=examples%2FPlayground.ipynb)
 
 <!-- [![Pylint](https://img.shields.io/badge/pylint-9.71%2F10-green.svg)](https://github.com/pytransitions/transitions) -->
 <!--[![Name](Image)](Link)-->
@@ -18,20 +18,20 @@ A lightweight, object-oriented state machine implementation in Python with many 
 
 ### Using pip (recommended)
 
-    pip install transitions
+    pip install tfsm
 
 ### Using uv (faster, modern package manager)
 
     # Install uv first (if you haven't already)
     curl -LsSf https://astral.sh/uv/install.sh | sh
 
-    # Install transitions
-    uv pip install transitions
+    # Install tfsm
+    uv pip install tfsm
 
 ### From source
 
-    git clone https://github.com/pytransitions/transitions.git
-    cd transitions
+    git clone https://github.com/pytransitions/tfsm.git
+    cd tfsm
     uv pip install -e .  # or: pip install -e .
 
 ## Table of Contents
@@ -198,7 +198,7 @@ Have a look at the [Diagrams](#diagrams) extensions if you want to know how.
 
 ## The non-quickstart
 
-A state machine is a _model_ of behavior composed of a finite number of _states_ and _transitions_ between those states. Within each state and transition some _action_ can be performed. A state machine needs to start at some _initial state_. When using `transitions`, a state machine may consist of multiple objects where some (_machines_) contain definitions for the manipulation of other (_models_). Below, we will look at some core concepts and how to work with them.
+A state machine is a _model_ of behavior composed of a finite number of _states_ and _transitions_ between those states. Within each state and transition some _action_ can be performed. A state machine needs to start at some _initial state_. When using `tfsm`, a state machine may consist of multiple objects where some (_machines_) contain definitions for the manipulation of other (_models_). Below, we will look at some core concepts and how to work with them.
 
 ### Some key concepts
 
@@ -1301,7 +1301,7 @@ assert model.state == "B"
 ```
 
 If you want to use all the convenience functions and throw some callbacks into the mix, defining a model can get pretty complicated when you have a lot of states and transitions defined.
-The method `generate_base_model` in `transitions` can generate a base model from a machine configuration to help you out with that.
+The method `generate_base_model` in `tfsm` can generate a base model from a machine configuration to help you out with that.
 
 ```python
 from tfsm.experimental.utils import generate_base_model
@@ -1898,7 +1898,7 @@ To generate graphs with the package `graphviz`, you need to install [Graphviz](h
 Now you can install the actual Python packages
 
     pip install graphviz pygraphviz  # install graphviz and/or pygraphviz manually...
-    pip install transitions[diagrams]  # ... or install transitions with 'diagrams' extras which currently depends on pygraphviz
+    pip install tfsm[diagrams]  # ... or install tfsm with 'diagrams' extras which currently depends on pygraphviz
 
 Currently, `GraphMachine` will use `pygraphviz` when available and fall back to `graphviz` when `pygraphviz` cannot be
 found.
