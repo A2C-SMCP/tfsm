@@ -115,6 +115,7 @@ dev = [
     "nox",
     "poethepoet",
     "ruff",
+    "bump-my-version",
 ]
 
 [tool.mypy]
@@ -173,6 +174,13 @@ nox = "uv run nox"
 nox-mypy = "uv run nox -s mypy"
 nox-test = "uv run nox -s test"
 nox-test-no-diagrams = "uv run nox -s test_no_diagrams"
+
+# Version management
+version-bump = "uv run bump-my-version bump $PART"
+version-bump-minor = "uv run bump-my-version bump minor"
+version-bump-patch = "uv run bump-my-version bump patch"
+version-show = "uv run bump-my-version show"
+version-tag = "uv run bump-my-version tag"
 
 # Build and publish
 build = "uv build"
