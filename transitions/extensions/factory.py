@@ -1,26 +1,26 @@
 """
-    transitions.extensions.factory
-    ------------------------------
+transitions.extensions.factory
+------------------------------
 
-    This module contains the definitions of classes which combine the functionality of transitions'
-    extension modules. These classes can be accessed by names as well as through a static convenience
-    factory object.
+This module contains the definitions of classes which combine the functionality of transitions'
+extension modules. These classes can be accessed by names as well as through a static convenience
+factory object.
 """
 
-from functools import partial
 import itertools
-from typing import Any, Callable, Tuple, Type, Union
+from collections.abc import Callable
+from functools import partial
+from typing import Any
 
 from ..core import Machine, Transition
-
-from .nesting import HierarchicalMachine, NestedEvent, NestedTransition
+from .diagrams import GraphMachine, HierarchicalGraphMachine, NestedGraphTransition
 from .locking import LockedMachine
-from .diagrams import GraphMachine, NestedGraphTransition, HierarchicalGraphMachine
+from .nesting import HierarchicalMachine, NestedEvent, NestedTransition
 
 try:
-    from transitions.extensions.asyncio import AsyncMachine, AsyncTransition
-    from transitions.extensions.asyncio import HierarchicalAsyncMachine, NestedAsyncTransition
+    from transitions.extensions.asyncio import AsyncMachine, AsyncTransition, HierarchicalAsyncMachine, NestedAsyncTransition
 except (ImportError, SyntaxError):  # pragma: no cover
+
     class AsyncMachine(Machine):  # type: ignore
         """A mock of AsyncMachine for Python 3.6 and earlier."""
 
@@ -39,7 +39,7 @@ class MachineFactory:
 
     # get one of the predefined classes which fulfill the criteria
     @staticmethod
-    def get_predefined(graph: bool = False, nested: bool = False, locked: bool = False, asyncio: bool = False) -> Type[Machine]:
+    def get_predefined(graph: bool = False, nested: bool = False, locked: bool = False, asyncio: bool = False) -> type[Machine]:
         """A function to retrieve machine classes by required functionality.
         Args:
             graph (bool): Whether the returned class should contain graph support.
@@ -56,7 +56,7 @@ class MachineFactory:
 
 class LockedHierarchicalMachine(LockedMachine, HierarchicalMachine):
     """
-        A threadsafe hierarchical machine.
+    A threadsafe hierarchical machine.
     """
 
     event_cls = NestedEvent  # type: ignore[assignment]
@@ -68,31 +68,34 @@ class LockedHierarchicalMachine(LockedMachine, HierarchicalMachine):
 
 class LockedGraphMachine(GraphMachine, LockedMachine):  # type: ignore[misc]
     """
-        A threadsafe machine with graph support.
+    A threadsafe machine with graph support.
     """
 
     @staticmethod
-    def format_references(func: Union[Callable[..., Any], partial[Any]]) -> str:
-        if isinstance(func, partial) and func.func.__name__.startswith('_locked_method'):
+    def format_references(func: Callable[..., Any] | partial[Any]) -> str:
+        if isinstance(func, partial) and func.func.__name__.startswith("_locked_method"):
             return "%s(%s)" % (
                 func.args[0].__name__,
-                ", ".join(itertools.chain(
-                    (str(_) for _ in func.args[1:]),
-                    ("%s=%s" % (key, value)
-                     for key, value in (func.keywords if func.keywords else {}).items()))))
+                ", ".join(
+                    itertools.chain(
+                        (str(_) for _ in func.args[1:]),
+                        ("%s=%s" % (key, value) for key, value in (func.keywords if func.keywords else {}).items()),
+                    )
+                ),
+            )
         return GraphMachine.format_references(func)
 
 
 class LockedHierarchicalGraphMachine(GraphMachine, LockedHierarchicalMachine):  # type: ignore[misc]
     """
-        A threadsafe hierarchical machine with graph support.
+    A threadsafe hierarchical machine with graph support.
     """
 
     transition_cls = NestedGraphTransition
     event_cls = NestedEvent
 
     @staticmethod
-    def format_references(func: Union[Callable[..., Any], partial[Any]]) -> str:
+    def format_references(func: Callable[..., Any] | partial[Any]) -> str:
         return LockedGraphMachine.format_references(func)
 
 
@@ -109,7 +112,7 @@ class HierarchicalAsyncGraphMachine(GraphMachine, HierarchicalAsyncMachine):
 
 
 # 4d tuple (graph, nested, locked, async)
-_CLASS_MAP: dict[Tuple[bool, bool, bool, bool], Type[Machine]] = {
+_CLASS_MAP: dict[tuple[bool, bool, bool, bool], type[Machine]] = {
     (False, False, False, False): Machine,
     (False, False, True, False): LockedMachine,
     (False, True, False, False): HierarchicalMachine,
@@ -121,5 +124,5 @@ _CLASS_MAP: dict[Tuple[bool, bool, bool, bool], Type[Machine]] = {
     (False, False, False, True): AsyncMachine,
     (True, False, False, True): AsyncGraphMachine,
     (False, True, False, True): HierarchicalAsyncMachine,
-    (True, True, False, True): HierarchicalAsyncGraphMachine
+    (True, True, False, True): HierarchicalAsyncGraphMachine,
 }

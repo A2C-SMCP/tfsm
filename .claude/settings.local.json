@@ -11,7 +11,8 @@
       "Bash(find:*)",
       "Bash(uv run mypy:*)",
       "Bash(mypy:*)",
-      "Bash(.:*)"
+      "Bash(.:*)",
+      "Bash(uv run poe lint:*)"
     ]
   }
 }

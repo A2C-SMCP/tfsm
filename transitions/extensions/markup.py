@@ -1,18 +1,19 @@
 """
-    transitions.extensions.markup
-    -----------------------------
+transitions.extensions.markup
+-----------------------------
 
-    This module extends machines with markup functionality that can be used to retrieve the current machine
-    configuration as a dictionary. This is used as the foundation for diagram generation with Graphviz but can
-    also be used to store and transfer machines.
+This module extends machines with markup functionality that can be used to retrieve the current machine
+configuration as a dictionary. This is used as the foundation for diagram generation with Graphviz but can
+also be used to store and transfer machines.
 """
 
-from functools import partial
-from enum import Enum, EnumMeta
 import importlib
 import itertools
 import numbers
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
+from collections.abc import Callable
+from enum import Enum
+from functools import partial
+from typing import Any
 
 from ..core import Machine
 from .nesting import HierarchicalMachine
@@ -24,52 +25,77 @@ class MarkupMachine(Machine):
     """
 
     # Special attributes such as NestedState._name/_parent or Transition._condition are handled differently
-    state_attributes = ['on_exit', 'on_enter', 'ignore_invalid_triggers', 'timeout', 'on_timeout', 'tags', 'label',
-                        'final']
-    transition_attributes = ['source', 'dest', 'prepare', 'before', 'after', 'label']
+    state_attributes = ["on_exit", "on_enter", "ignore_invalid_triggers", "timeout", "on_timeout", "tags", "label", "final"]
+    transition_attributes = ["source", "dest", "prepare", "before", "after", "label"]
 
-    def __init__(self, model: Any = Machine.self_literal, states: Optional[Any] = None, initial: str = 'initial',
-                 transitions: Optional[Any] = None, send_event: bool = False, auto_transitions: bool = True,
-                 ordered_transitions: Union[bool, str, List[str]] = False,
-                 ignore_invalid_triggers: Optional[bool] = None, before_state_change: Optional[Any] = None,
-                 after_state_change: Optional[Any] = None, name: Optional[str] = None, queued: bool = False,
-                 prepare_event: Optional[Any] = None, finalize_event: Optional[Any] = None,
-                 model_attribute: str = 'state', model_override: bool = False, on_exception: Optional[Any] = None,
-                 on_final: Optional[Any] = None, markup: Optional[Dict[str, Any]] = None,
-                 auto_transitions_markup: bool = False, **kwargs: Any) -> None:
+    def __init__(
+        self,
+        model: Any = Machine.self_literal,
+        states: Any | None = None,
+        initial: str = "initial",
+        transitions: Any | None = None,
+        send_event: bool = False,
+        auto_transitions: bool = True,
+        ordered_transitions: bool | str | list[str] = False,
+        ignore_invalid_triggers: bool | None = None,
+        before_state_change: Any | None = None,
+        after_state_change: Any | None = None,
+        name: str | None = None,
+        queued: bool = False,
+        prepare_event: Any | None = None,
+        finalize_event: Any | None = None,
+        model_attribute: str = "state",
+        model_override: bool = False,
+        on_exception: Any | None = None,
+        on_final: Any | None = None,
+        markup: dict[str, Any] | None = None,
+        auto_transitions_markup: bool = False,
+        **kwargs: Any,
+    ) -> None:
         self._markup = markup or {}
         self._auto_transitions_markup = auto_transitions_markup
         self._needs_update = True
 
         if self._markup:
             # remove models from config to process them AFTER the base machine has been initialized
-            models = self._markup.pop('models', [])
-            super(MarkupMachine, self).__init__(model=None, **self._markup)
+            models = self._markup.pop("models", [])
+            super().__init__(model=None, **self._markup)
             for mod in models:
                 self._add_markup_model(mod)
         else:
-            super(MarkupMachine, self).__init__(
-                model=model, states=states, initial=initial, transitions=transitions,
-                send_event=send_event, auto_transitions=auto_transitions,
+            super().__init__(
+                model=model,
+                states=states,
+                initial=initial,
+                transitions=transitions,
+                send_event=send_event,
+                auto_transitions=auto_transitions,
                 ordered_transitions=ordered_transitions,  # type: ignore[arg-type]
                 ignore_invalid_triggers=ignore_invalid_triggers,
-                before_state_change=before_state_change, after_state_change=after_state_change, name=name,
-                queued=queued, prepare_event=prepare_event, finalize_event=finalize_event,
-                model_attribute=model_attribute, model_override=model_override,
-                on_exception=on_exception, on_final=on_final, **kwargs
+                before_state_change=before_state_change,
+                after_state_change=after_state_change,
+                name=name,
+                queued=queued,
+                prepare_event=prepare_event,
+                finalize_event=finalize_event,
+                model_attribute=model_attribute,
+                model_override=model_override,
+                on_exception=on_exception,
+                on_final=on_final,
+                **kwargs,
             )
-            self._markup['before_state_change'] = [x for x in (rep(f) for f in self.before_state_change) if x]
-            self._markup['after_state_change'] = [x for x in (rep(f) for f in self.before_state_change) if x]
-            self._markup['prepare_event'] = [x for x in (rep(f) for f in self.prepare_event) if x]
-            self._markup['finalize_event'] = [x for x in (rep(f) for f in self.finalize_event) if x]
-            self._markup['on_exception'] = [x for x in (rep(f) for f in self.on_exception) if x]
-            self._markup['on_final'] = [x for x in (rep(f) for f in self.on_final) if x]
-            self._markup['send_event'] = self.send_event
-            self._markup['auto_transitions'] = self.auto_transitions
-            self._markup['model_attribute'] = self.model_attribute
-            self._markup['model_override'] = self.model_override
-            self._markup['ignore_invalid_triggers'] = self.ignore_invalid_triggers
-            self._markup['queued'] = self.has_queue
+            self._markup["before_state_change"] = [x for x in (rep(f) for f in self.before_state_change) if x]
+            self._markup["after_state_change"] = [x for x in (rep(f) for f in self.before_state_change) if x]
+            self._markup["prepare_event"] = [x for x in (rep(f) for f in self.prepare_event) if x]
+            self._markup["finalize_event"] = [x for x in (rep(f) for f in self.finalize_event) if x]
+            self._markup["on_exception"] = [x for x in (rep(f) for f in self.on_exception) if x]
+            self._markup["on_final"] = [x for x in (rep(f) for f in self.on_final) if x]
+            self._markup["send_event"] = self.send_event
+            self._markup["auto_transitions"] = self.auto_transitions
+            self._markup["model_attribute"] = self.model_attribute
+            self._markup["model_override"] = self.model_override
+            self._markup["ignore_invalid_triggers"] = self.ignore_invalid_triggers
+            self._markup["queued"] = self.has_queue
 
     @property
     def auto_transitions_markup(self) -> bool:
@@ -83,17 +109,17 @@ class MarkupMachine(Machine):
         self._needs_update = True
 
     @property
-    def markup(self) -> Dict[str, Any]:
+    def markup(self) -> dict[str, Any]:
         """Returns the machine's configuration as a markup dictionary.
         Returns:
             dict of machine configuration parameters.
         """
-        self._markup['models'] = self._convert_models()
+        self._markup["models"] = self._convert_models()
         return self.get_markup_config()
 
     # the only reason why this not part of markup property is that pickle
     # has issues with properties during __setattr__ (self.markup is not set)
-    def get_markup_config(self) -> Dict[str, Any]:
+    def get_markup_config(self) -> dict[str, Any]:
         """Generates and returns all machine markup parameters except models.
         Returns:
             dict of machine configuration parameters.
@@ -103,21 +129,36 @@ class MarkupMachine(Machine):
             self._needs_update = False
         return self._markup
 
-    def add_transition(self, trigger: Any, source: Any, dest: Any, conditions: Optional[Any] = None,
-                       unless: Optional[Any] = None, before: Optional[Any] = None, after: Optional[Any] = None,
-                       prepare: Optional[Any] = None, **kwargs: Any) -> None:
-        super(MarkupMachine, self).add_transition(trigger, source, dest, conditions=conditions, unless=unless,
-                                                  before=before, after=after, prepare=prepare, **kwargs)
+    def add_transition(
+        self,
+        trigger: Any,
+        source: Any,
+        dest: Any,
+        conditions: Any | None = None,
+        unless: Any | None = None,
+        before: Any | None = None,
+        after: Any | None = None,
+        prepare: Any | None = None,
+        **kwargs: Any,
+    ) -> None:
+        super().add_transition(
+            trigger, source, dest, conditions=conditions, unless=unless, before=before, after=after, prepare=prepare, **kwargs
+        )
         self._needs_update = True
 
     def remove_transition(self, trigger: Any, source: Any = "*", dest: Any = "*") -> None:
-        super(MarkupMachine, self).remove_transition(trigger, source, dest)
+        super().remove_transition(trigger, source, dest)
         self._needs_update = True
 
-    def add_states(self, states: Any, on_enter: Optional[Any] = None, on_exit: Optional[Any] = None,
-                   ignore_invalid_triggers: Optional[Any] = None, **kwargs: Any) -> None:
-        super(MarkupMachine, self).add_states(states, on_enter=on_enter, on_exit=on_exit,
-                                              ignore_invalid_triggers=ignore_invalid_triggers, **kwargs)
+    def add_states(
+        self,
+        states: Any,
+        on_enter: Any | None = None,
+        on_exit: Any | None = None,
+        ignore_invalid_triggers: Any | None = None,
+        **kwargs: Any,
+    ) -> None:
+        super().add_states(states, on_enter=on_enter, on_exit=on_exit, ignore_invalid_triggers=ignore_invalid_triggers, **kwargs)
         self._needs_update = True
 
     @staticmethod
@@ -133,37 +174,40 @@ class MarkupMachine(Machine):
         if isinstance(func, partial):
             return "%s(%s)" % (
                 func.func.__name__,
-                ", ".join(itertools.chain(
-                    (str(_) for _ in func.args),
-                    ("%s=%s" % (key, value)
-                     for key, value in (func.keywords if func.keywords else {}).items()))))
+                ", ".join(
+                    itertools.chain(
+                        (str(_) for _ in func.args),
+                        ("%s=%s" % (key, value) for key, value in (func.keywords if func.keywords else {}).items()),
+                    )
+                ),
+            )
         return str(func)
 
-    def _convert_states_and_transitions(self, root: Dict[str, Any]) -> None:
-        state = getattr(self, 'scoped', self)
+    def _convert_states_and_transitions(self, root: dict[str, Any]) -> None:
+        state = getattr(self, "scoped", self)
         if state.initial:
-            root['initial'] = state.initial
+            root["initial"] = state.initial
         if state == self and state.name:
-            root['name'] = self.name[:-2]
+            root["name"] = self.name[:-2]
         self._convert_transitions(root)
         self._convert_states(root)
 
-    def _convert_states(self, root: Dict[str, Any]) -> None:
-        key = 'states' if getattr(self, 'scoped', self) == self else 'children'
+    def _convert_states(self, root: dict[str, Any]) -> None:
+        key = "states" if getattr(self, "scoped", self) == self else "children"
         root[key] = []
         for state_name, state in self.states.items():
             s_def = _convert(state, self.state_attributes, self.format_references)
             if isinstance(state_name, Enum):
-                s_def['name'] = state_name.name
+                s_def["name"] = state_name.name
             else:
-                s_def['name'] = state_name
-            if getattr(state, 'states', []):
+                s_def["name"] = state_name
+            if getattr(state, "states", []):
                 with self(state_name):  # type: ignore[operator]
                     self._convert_states_and_transitions(s_def)
             root[key].append(s_def)
 
-    def _convert_transitions(self, root: Dict[str, Any]) -> None:
-        root['transitions'] = []
+    def _convert_transitions(self, root: dict[str, Any]) -> None:
+        root["transitions"] = []
         for event in self.events.values():
             if self._omit_auto_transitions(event):
                 continue
@@ -171,33 +215,31 @@ class MarkupMachine(Machine):
             for transitions in event.transitions.items():
                 for trans in transitions[1]:
                     t_def = _convert(trans, self.transition_attributes, self.format_references)
-                    t_def['trigger'] = event.name
-                    con = [x for x in (rep(f.func, self.format_references) for f in trans.conditions
-                                       if f.target) if x]
-                    unl = [x for x in (rep(f.func, self.format_references) for f in trans.conditions
-                                       if not f.target) if x]
+                    t_def["trigger"] = event.name
+                    con = [x for x in (rep(f.func, self.format_references) for f in trans.conditions if f.target) if x]
+                    unl = [x for x in (rep(f.func, self.format_references) for f in trans.conditions if not f.target) if x]
                     if con:
-                        t_def['conditions'] = con
+                        t_def["conditions"] = con
                     if unl:
-                        t_def['unless'] = unl
-                    root['transitions'].append(t_def)
+                        t_def["unless"] = unl
+                    root["transitions"].append(t_def)
 
-    def _add_markup_model(self, markup: Dict[str, Any]) -> None:
-        initial = markup.get('state', None)
-        if markup['class-name'] == 'self':
+    def _add_markup_model(self, markup: dict[str, Any]) -> None:
+        initial = markup.get("state", None)
+        if markup["class-name"] == "self":
             self.add_model(self, initial)
         else:
-            mod_name, cls_name = markup['class-name'].rsplit('.', 1)
+            mod_name, cls_name = markup["class-name"].rsplit(".", 1)
             cls = getattr(importlib.import_module(mod_name), cls_name)
             self.add_model(cls(), initial)
 
-    def _convert_models(self) -> List[Dict[str, Any]]:
+    def _convert_models(self) -> list[dict[str, Any]]:
         models = []
         for model in self.models:
             state = getattr(model, self.model_attribute)
             model_def = dict(state=state.name if isinstance(state, Enum) else state)
-            model_def['name'] = model.name if hasattr(model, 'name') else str(id(model))
-            model_def['class-name'] = 'self' if model == self else model.__module__ + "." + model.__class__.__name__
+            model_def["name"] = model.name if hasattr(model, "name") else str(id(model))
+            model_def["class-name"] = "self" if model == self else model.__module__ + "." + model.__class__.__name__
             models.append(model_def)
         return models
 
@@ -207,8 +249,8 @@ class MarkupMachine(Machine):
     # auto transition events commonly a) start with the 'to_' prefix, followed by b) the state name
     # and c) contain a transition from each state to the target state (including the target)
     def _is_auto_transition(self, event: Any) -> bool:
-        if event.name.startswith('to_') and len(event.transitions) == len(self.states):
-            state_name = event.name.removeprefix('to_')
+        if event.name.startswith("to_") and len(event.transitions) == len(self.states):
+            state_name = event.name.removeprefix("to_")
             try:
                 _ = self.get_state(state_name)
                 return True
@@ -216,8 +258,8 @@ class MarkupMachine(Machine):
                 pass
         return False
 
-    def _identify_callback(self, name: str) -> Tuple[Optional[Any], Optional[Any]]:
-        callback_type, target = super(MarkupMachine, self)._identify_callback(name)
+    def _identify_callback(self, name: str) -> tuple[Any | None, Any | None]:
+        callback_type, target = super()._identify_callback(name)
         if callback_type:
             self._needs_update = True
         return callback_type, target
@@ -227,7 +269,7 @@ class HierarchicalMarkupMachine(MarkupMachine, HierarchicalMachine):
     """Extends transitions.extensions.nesting.HierarchicalMachine with markup capabilities."""
 
 
-def rep(func: Any, format_references: Optional[Callable[[Any], str]] = None) -> Optional[str]:
+def rep(func: Any, format_references: Callable[[Any], str] | None = None) -> str | None:
     """Return a string representation for `func`."""
     if isinstance(func, str):
         return func
@@ -236,8 +278,8 @@ def rep(func: Any, format_references: Optional[Callable[[Any], str]] = None) -> 
     return format_references(func) if format_references is not None else None
 
 
-def _convert(obj: Any, attributes: List[str], format_references: Callable[[Any], str]) -> Dict[str, Any]:
-    definition: Dict[str, Any] = {}
+def _convert(obj: Any, attributes: list[str], format_references: Callable[[Any], str]) -> dict[str, Any]:
+    definition: dict[str, Any] = {}
     for key in attributes:
         val = getattr(obj, key, False)
         if not val:

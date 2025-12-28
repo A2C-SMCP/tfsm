@@ -1,16 +1,17 @@
 """
-    transitions.extensions.diagrams
-    -------------------------------
+transitions.extensions.diagrams
+-------------------------------
 
-    Graphviz support for (nested) machines. This also includes partial views
-    of currently valid transitions.
+Graphviz support for (nested) machines. This also includes partial views
+of currently valid transitions.
 """
+
 import copy
 import logging
-from functools import partial
 from collections import defaultdict
+from functools import partial
 from os.path import splitext
-from typing import TYPE_CHECKING, Any, Optional, Union
+from typing import TYPE_CHECKING, Any, Union
 
 try:
     import graphviz as pgv
@@ -29,14 +30,14 @@ _LOGGER.addHandler(logging.NullHandler())
 
 class Graph(BaseGraph):
     """Graph creation for transitions.core.Machine.
-        Attributes:
-            custom_styles (dict): A dictionary of styles for the current graph
+    Attributes:
+        custom_styles (dict): A dictionary of styles for the current graph
     """
 
-    def __init__(self, machine: Union['GraphMachine', 'ContextManagerMachine']) -> None:
+    def __init__(self, machine: Union["GraphMachine", "ContextManagerMachine"]) -> None:
         self.custom_styles: dict[str, dict[str, Any]] = {}
         self.reset_styling()
-        super(Graph, self).__init__(machine)
+        super().__init__(machine)
 
     def set_previous_transition(self, src: str, dst: str) -> None:
         self.custom_styles["edge"][src][dst] = "previous"
@@ -57,7 +58,7 @@ class Graph(BaseGraph):
             container.node(
                 state["name"],
                 label=self._convert_state_attributes(state),
-                **self.machine.style_attributes.get("node", {}).get(style, {})  # type: ignore[union-attr]
+                **self.machine.style_attributes.get("node", {}).get(style, {}),  # type: ignore[union-attr]
             )
 
     def _add_edges(self, transitions: list[dict[str, Any]], container: Any) -> None:
@@ -75,7 +76,7 @@ class Graph(BaseGraph):
                     src,
                     dst,
                     label=" | ".join(labels),
-                    **self.machine.style_attributes.get("edge", {}).get(style, {})  # type: ignore[union-attr]
+                    **self.machine.style_attributes.get("edge", {}).get(style, {}),  # type: ignore[union-attr]
                 )
 
     def generate(self) -> None:
@@ -86,7 +87,7 @@ class Graph(BaseGraph):
             raise Exception("AGraph diagram requires graphviz")
         # we cannot really generate a graph in advance with graphviz
 
-    def get_graph(self, title: Optional[str] = None, roi_state: Optional[Any] = None) -> Any:
+    def get_graph(self, title: str | None = None, roi_state: Any | None = None) -> Any:
         title = title if title else self.machine.title  # type: ignore[union-attr]
 
         fsm_graph = pgv.Digraph(
@@ -109,25 +110,17 @@ class Graph(BaseGraph):
                     while state:
                         active_states.add(state)
                         state = sep.join(state.split(sep)[:-1])
-            transitions = [
-                t
-                for t in transitions
-                if t["source"] in active_states or self.custom_styles["edge"][t["source"]][t["dest"]]
-            ]
-            active_states = active_states.union({
-                t
-                for trans in transitions
-                for t in [trans["source"], trans.get("dest", trans["source"])]
-            })
+            transitions = [t for t in transitions if t["source"] in active_states or self.custom_styles["edge"][t["source"]][t["dest"]]]
+            active_states = active_states.union({t for trans in transitions for t in [trans["source"], trans.get("dest", trans["source"])]})
             active_states = active_states.union({k for k, style in self.custom_styles["node"].items() if style})
             states = filter_states(copy.deepcopy(states), active_states, self.machine.state_cls)
         self._add_nodes(states, fsm_graph)
         self._add_edges(transitions, fsm_graph)
-        setattr(fsm_graph, "draw", partial(self.draw, fsm_graph))
+        fsm_graph.draw = partial(self.draw, fsm_graph)
         return fsm_graph
 
     # pylint: disable=redefined-builtin,unused-argument
-    def draw(self, graph: Any, filename: Any, format: Optional[str] = None, prog: str = "dot", args: str = "") -> Optional[str]:
+    def draw(self, graph: Any, filename: Any, format: str | None = None, prog: str = "dot", args: str = "") -> str | None:
         """
         Generates and saves an image of the state machine using graphviz. Note that `prog` and `args` are only part
         of the signature to mimic `Agraph.draw` and thus allow to easily switch between graph backends.
@@ -143,9 +136,7 @@ class Graph(BaseGraph):
         graph.engine = prog
         if filename is None:
             if format is None:
-                raise ValueError(
-                    "Parameter 'format' must not be None when filename is no valid file path."
-                )
+                raise ValueError("Parameter 'format' must not be None when filename is no valid file path.")
             return graph.pipe(format)  # type: ignore[no-any-return]
         try:
             filename, ext = splitext(filename)
@@ -153,9 +144,7 @@ class Graph(BaseGraph):
             graph.render(filename, format=format if format else "png", cleanup=True)
         except (TypeError, AttributeError):
             if format is None:
-                raise ValueError(
-                    "Parameter 'format' must not be None when filename is no valid file path."
-                )  # from None
+                raise ValueError("Parameter 'format' must not be None when filename is no valid file path.")  # from None
             filename.write(graph.pipe(format))
         return None
 
@@ -165,16 +154,16 @@ class NestedGraph(Graph):
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         self._cluster_states: list[str] = []
-        super(NestedGraph, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def set_node_style(self, state: Any, style: str) -> None:
         for state_name in self._get_state_names(state):
-            super(NestedGraph, self).set_node_style(state_name, style)
+            super().set_node_style(state_name, style)
 
     def set_previous_transition(self, src: str, dst: str) -> None:
         src_name = self._get_global_name(src.split(self.machine.state_cls.separator))  # type: ignore[union-attr]
         dst_name = self._get_global_name(dst.split(self.machine.state_cls.separator))  # type: ignore[union-attr]
-        super(NestedGraph, self).set_previous_transition(src_name, dst_name)
+        super().set_previous_transition(src_name, dst_name)
 
     def _add_nodes(self, states: list[dict[str, Any]], container: Any) -> None:
         self._add_nested_nodes(states, container, prefix="", default_style="default")
@@ -231,20 +220,14 @@ class NestedGraph(Graph):
                 dst = src
             if edges_attr[src][dst]:
                 attr = edges_attr[src][dst]
-                attr[attr["label_pos"]] = " | ".join(
-                    [edges_attr[src][dst][attr["label_pos"]], self._transition_label(transition)]
-                )
+                attr[attr["label_pos"]] = " | ".join([edges_attr[src][dst][attr["label_pos"]], self._transition_label(transition)])
             else:
                 edges_attr[src][dst] = self._create_edge_attr(src, dst, transition)
 
         for custom_src, dests in self.custom_styles["edge"].items():
             for custom_dst, style in dests.items():
-                if style and (
-                    custom_src not in edges_attr or custom_dst not in edges_attr[custom_src]
-                ):
-                    edges_attr[custom_src][custom_dst] = self._create_edge_attr(
-                        custom_src, custom_dst, {"trigger": "", "dest": ""}
-                    )
+                if style and (custom_src not in edges_attr or custom_dst not in edges_attr[custom_src]):
+                    edges_attr[custom_src][custom_dst] = self._create_edge_attr(custom_src, custom_dst, {"trigger": "", "dest": ""})
 
         for src, dests in edges_attr.items():
             for dst, attr in dests.items():
@@ -278,16 +261,16 @@ class NestedGraph(Graph):
         return attr
 
 
-def filter_states(states: list[dict[str, Any]], state_names: set[str], state_cls: Any, prefix: Optional[list[str]] = None) -> list[dict[str, Any]]:
+def filter_states(
+    states: list[dict[str, Any]], state_names: set[str], state_cls: Any, prefix: list[str] | None = None
+) -> list[dict[str, Any]]:
     prefix = prefix or []
     result = []
     for state in states:
         pref = prefix + [state["name"]]
         included = getattr(state_cls, "separator", "_").join(pref) in state_names
         if "children" in state:
-            state["children"] = filter_states(
-                state["children"], state_names, state_cls, prefix=pref
-            )
+            state["children"] = filter_states(state["children"], state_names, state_cls, prefix=pref)
             if state["children"] or included:
                 result.append(state)
         elif included:

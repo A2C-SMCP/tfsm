@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "transitions"
-version = "0.9.4"
+version = "0.9.5"
 description = "A lightweight, object-oriented Python state machine implementation with many extensions."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -114,6 +114,7 @@ dev = [
     "types-mock",
     "nox",
     "poethepoet",
+    "ruff",
 ]
 
 [tool.mypy]
@@ -163,8 +164,9 @@ codestyle = "uv run pytest tests/test_codestyle.py"
 typecheck = ["mypy", "codestyle"]
 
 # Code quality
-lint = "uv run pycodestyle transitions/"
-format-check = "uv run pycodestyle transitions/"
+lint = "uv run ruff check transitions/"
+format = "uv run ruff format transitions/"
+format-check = "uv run ruff format --check transitions/"
 
 # Nox sessions
 nox = "uv run nox"

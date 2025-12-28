@@ -1,17 +1,18 @@
 """
-    transitions.extensions.diagrams
-    -------------------------------
+transitions.extensions.diagrams
+-------------------------------
 
-    Mermaid support for (nested) machines. This also includes partial views
-    of currently valid transitions.
+Mermaid support for (nested) machines. This also includes partial views
+of currently valid transitions.
 """
+
 import copy
 import logging
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Optional, Union, cast
+from typing import TYPE_CHECKING, Any, Union
 
-from .diagrams_graphviz import filter_states
 from .diagrams_base import BaseGraph, ContextManagerMachine
+from .diagrams_graphviz import filter_states
 
 if TYPE_CHECKING:
     from .diagrams import GraphMachine
@@ -22,14 +23,14 @@ _LOGGER.addHandler(logging.NullHandler())
 
 class Graph(BaseGraph):
     """Graph creation for transitions.core.Machine.
-        Attributes:
-            custom_styles (dict): A dictionary of styles for the current graph
+    Attributes:
+        custom_styles (dict): A dictionary of styles for the current graph
     """
 
-    def __init__(self, machine: Union['GraphMachine', ContextManagerMachine]) -> None:
+    def __init__(self, machine: Union["GraphMachine", ContextManagerMachine]) -> None:
         self.custom_styles: dict[str, dict[str, Any]] = {}
         self.reset_styling()
-        super(Graph, self).__init__(machine)
+        super().__init__(machine)
 
     def set_previous_transition(self, src: str, dst: str) -> None:
         self.custom_styles["edge"][src][dst] = "previous"
@@ -46,9 +47,8 @@ class Graph(BaseGraph):
 
     def _add_nodes(self, states: list[Any], container: list[str]) -> None:
         for state in states:
-            container.append("state \"{}\" as {}".format(self._convert_state_attributes(state), state["name"]))
-            container.append("Class {} s_{}".format(state["name"],
-                                                    self.custom_styles["node"][state["name"]] or "default"))
+            container.append('state "{}" as {}'.format(self._convert_state_attributes(state), state["name"]))
+            container.append("Class {} s_{}".format(state["name"], self.custom_styles["node"][state["name"]] or "default"))
 
     def _add_edges(self, transitions: list[dict[str, Any]], container: list[str]) -> None:
         edge_labels: defaultdict[str, defaultdict[str, list[str]]] = defaultdict(lambda: defaultdict(list))
@@ -68,16 +68,15 @@ class Graph(BaseGraph):
         """
         # we cannot really generate a graph in advance with graphviz
 
-    def get_graph(self, title: Optional[str] = None, roi_state: Optional[Any] = None) -> 'DigraphMock':
+    def get_graph(self, title: str | None = None, roi_state: Any | None = None) -> "DigraphMock":
         title = title if title else self.machine.title  # type: ignore[union-attr]
 
-        fsm_graph = ['---', title, '---', 'stateDiagram-v2']
+        fsm_graph = ["---", title, "---", "stateDiagram-v2"]
         fsm_graph.extend(_to_mermaid(self.machine.machine_attributes, " "))  # type: ignore[union-attr]
 
         for style_name, style_attrs in self.machine.style_attributes["node"].items():  # type: ignore[union-attr]
             if style_name:
-                fsm_graph.append("classDef s_{} {}".format(
-                    style_name, ','.join(_to_mermaid(style_attrs, ":"))))
+                fsm_graph.append("classDef s_{} {}".format(style_name, ",".join(_to_mermaid(style_attrs, ":"))))
         fsm_graph.append("")
         states, transitions = self._get_elements()
         if roi_state:
@@ -90,23 +89,15 @@ class Graph(BaseGraph):
                     while state:
                         active_states.add(state)
                         state = sep.join(state.split(sep)[:-1])
-            transitions = [
-                t
-                for t in transitions
-                if t["source"] in active_states or self.custom_styles["edge"][t["source"]][t["dest"]]
-            ]
-            active_states = active_states.union({
-                t
-                for trans in transitions
-                for t in [trans["source"], trans.get("dest", trans["source"])]
-            })
+            transitions = [t for t in transitions if t["source"] in active_states or self.custom_styles["edge"][t["source"]][t["dest"]]]
+            active_states = active_states.union({t for trans in transitions for t in [trans["source"], trans.get("dest", trans["source"])]})
             active_states = active_states.union({k for k, style in self.custom_styles["node"].items() if style})
             states = filter_states(copy.deepcopy(states), active_states, self.machine.state_cls)
         self._add_nodes(states, fsm_graph)
         fsm_graph.append("")
         self._add_edges(transitions, fsm_graph)
         if self.machine.initial and (roi_state is None or roi_state == self.machine.initial):  # type: ignore[union-attr]
-            fsm_graph.append("[*] --> {}".format(self.machine.initial))  # type: ignore[union-attr]
+            fsm_graph.append(f"[*] --> {self.machine.initial}")  # type: ignore[union-attr]
 
         indent = 0
         for i in range(len(fsm_graph)):
@@ -131,7 +122,7 @@ class Graph(BaseGraph):
             if "on_exit" in state:
                 label += r"\n- exit:\n  + " + r"\n  + ".join(state["on_exit"])
             if "timeout" in state:
-                label += r'\n- timeout(' + state['timeout'] + 's) -> (' + ', '.join(state['on_timeout']) + ')'
+                label += r"\n- timeout(" + state["timeout"] + "s) -> (" + ", ".join(state["on_timeout"]) + ")"
         # end each label with a left-aligned newline
         return str(label)
 
@@ -141,11 +132,11 @@ class NestedGraph(Graph):
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         self._cluster_states: list[str] = []
-        super(NestedGraph, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def set_node_style(self, state: Any, style: str) -> None:
         for state_name in self._get_state_names(state):
-            super(NestedGraph, self).set_node_style(state_name, style)
+            super().set_node_style(state_name, style)
 
     def set_previous_transition(self, src: str, dst: str) -> None:
         self.custom_styles["edge"][src][dst] = "previous"
@@ -157,14 +148,13 @@ class NestedGraph(Graph):
     def _add_nested_nodes(self, states: list[Any], container: list[str], prefix: str, default_style: str) -> None:
         for state in states:
             name = prefix + state["name"]
-            container.append("state \"{}\" as {}".format(self._convert_state_attributes(state), name))
+            container.append(f'state "{self._convert_state_attributes(state)}" as {name}')
             if state.get("final", False):
-                container.append("{} --> [*]".format(name))
+                container.append(f"{name} --> [*]")
             if not prefix:
-                container.append("Class {} s_{}".format(name.replace(" ", ""),
-                                                        self.custom_styles["node"][name] or default_style))
+                container.append("Class {} s_{}".format(name.replace(" ", ""), self.custom_styles["node"][name] or default_style))
             if state.get("children", None) is not None:
-                container.append("state {} {{".format(name))
+                container.append(f"state {name} {{")
                 self._cluster_states.append(name)
                 # with container.subgraph(name=cluster_name, graph_attr=attr) as sub:
                 initial = state.get("initial", "")
@@ -182,8 +172,9 @@ class NestedGraph(Graph):
                         container.pop()
                 else:
                     if initial:
-                        container.append("[*] --> {}".format(
-                            prefix + state["name"] + getattr(self.machine.state_cls, "separator", "_") + initial))
+                        container.append(
+                            "[*] --> {}".format(prefix + state["name"] + getattr(self.machine.state_cls, "separator", "_") + initial)
+                        )
                     self._add_nested_nodes(
                         state["children"],
                         container,
@@ -201,20 +192,14 @@ class NestedGraph(Graph):
             dst = transition.get("dest", src)
             if edges_attr[src][dst]:
                 attr = edges_attr[src][dst]
-                attr["label"] = " | ".join(
-                    [edges_attr[src][dst]["label"], self._transition_label(transition)]
-                )
+                attr["label"] = " | ".join([edges_attr[src][dst]["label"], self._transition_label(transition)])
             else:
                 edges_attr[src][dst] = self._create_edge_attr(src, dst, transition)
 
         for custom_src, dests in self.custom_styles["edge"].items():
             for custom_dst, style in dests.items():
-                if style and (
-                    custom_src not in edges_attr or custom_dst not in edges_attr[custom_src]
-                ):
-                    edges_attr[custom_src][custom_dst] = self._create_edge_attr(
-                        custom_src, custom_dst, {"trigger": "", "dest": ""}
-                    )
+                if style and (custom_src not in edges_attr or custom_dst not in edges_attr[custom_src]):
+                    edges_attr[custom_src][custom_dst] = self._create_edge_attr(custom_src, custom_dst, {"trigger": "", "dest": ""})
 
         for src, dests in edges_attr.items():
             for dst, attr in dests.items():
@@ -227,12 +212,11 @@ class NestedGraph(Graph):
 
 
 class DigraphMock:
-
     def __init__(self, source: str) -> None:
         self.source: str = source
 
     # pylint: disable=redefined-builtin,unused-argument
-    def draw(self, filename: Any, format: Optional[str] = None, prog: str = "dot", args: str = "") -> Optional[str]:
+    def draw(self, filename: Any, format: str | None = None, prog: str = "dot", args: str = "") -> str | None:
         """
         Generates and saves an image of the state machine using graphviz. Note that `prog` and `args` are only part
         of the signature to mimic `Agraph.draw` and thus allow to easily switch between graph backends.
@@ -267,5 +251,5 @@ def _to_mermaid(style_attrs: dict[str, Any], sep: str) -> list[str]:
             continue
         if k in convertible:
             k = convertible[k]
-        params.append("{}{}{}".format(k, sep, v))
+        params.append(f"{k}{sep}{v}")
     return params

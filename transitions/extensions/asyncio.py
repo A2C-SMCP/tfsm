@@ -1,12 +1,12 @@
 """
-    transitions.extensions.asyncio
-    ------------------------------
+transitions.extensions.asyncio
+------------------------------
 
-    This module contains machine, state and event implementations for asynchronous callback processing.
-    `AsyncMachine` and `HierarchicalAsyncMachine` use `asyncio` for concurrency. The extension `transitions-anyio`
-    found at https://github.com/pytransitions/transitions-anyio illustrates how they can be extended to
-    make use of other concurrency libraries.
-    The module also contains the state mixin `AsyncTimeout` to asynchronously trigger timeout-related callbacks.
+This module contains machine, state and event implementations for asynchronous callback processing.
+`AsyncMachine` and `HierarchicalAsyncMachine` use `asyncio` for concurrency. The extension `transitions-anyio`
+found at https://github.com/pytransitions/transitions-anyio illustrates how they can be extended to
+make use of other concurrency libraries.
+The module also contains the state mixin `AsyncTimeout` to asynchronously trigger timeout-related callbacks.
 """
 
 # Overriding base methods of states, transitions and machines with async variants is not considered good practise.
@@ -16,20 +16,18 @@
 
 import asyncio
 import contextvars
+import copy
 import inspect
 import logging
 import sys
 import warnings
 from collections import deque
+from collections.abc import Callable
 from functools import partial, reduce
-from typing import Any, Optional, Union, Awaitable, Callable, Dict, List, Tuple
-import copy
+from typing import Any, Optional
 
-from ..core import State, Condition, Transition, EventData, listify
-from ..core import Event, MachineError, Machine
-from ..core import StateName, Callback, CallbackList
-from .nesting import HierarchicalMachine, NestedState, NestedEvent, NestedTransition, resolve_order
-
+from ..core import Callback, CallbackList, Condition, Event, EventData, Machine, MachineError, State, Transition, listify
+from .nesting import HierarchicalMachine, NestedEvent, NestedState, NestedTransition, resolve_order
 
 _LOGGER = logging.getLogger(__name__)
 _LOGGER.addHandler(logging.NullHandler())
@@ -42,7 +40,7 @@ CANCELLED_MSG = "_transition"
 class AsyncState(State):
     """A persistent representation of a state managed by a ``Machine``. Callback execution is done asynchronously."""
 
-    async def enter(self, event_data: 'AsyncEventData') -> None:  # type: ignore[override]
+    async def enter(self, event_data: "AsyncEventData") -> None:  # type: ignore[override]
         """Triggered when a state is entered.
         Args:
             event_data: (AsyncEventData): The currently processed event.
@@ -51,7 +49,7 @@ class AsyncState(State):
         await event_data.machine.callbacks(self.on_enter, event_data)  # type: ignore[func-returns-value]
         _LOGGER.info("%sFinished processing state %s enter callbacks.", event_data.machine.name, self.name)
 
-    async def exit(self, event_data: 'AsyncEventData') -> None:  # type: ignore[override]
+    async def exit(self, event_data: "AsyncEventData") -> None:  # type: ignore[override]
         """Triggered when a state is exited.
         Args:
             event_data: (AsyncEventData): The currently processed event.
@@ -64,12 +62,12 @@ class AsyncState(State):
 class NestedAsyncState(NestedState, AsyncState):
     """A state that allows substates. Callback execution is done asynchronously."""
 
-    async def scoped_enter(self, event_data: 'AsyncEventData', scope: Optional[List[str]] = None) -> None:  # type: ignore[override]
+    async def scoped_enter(self, event_data: "AsyncEventData", scope: list[str] | None = None) -> None:  # type: ignore[override]
         self._scope = scope or []
         await self.enter(event_data)
         self._scope = []
 
-    async def scoped_exit(self, event_data: 'AsyncEventData', scope: Optional[List[str]] = None) -> None:  # type: ignore[override]
+    async def scoped_exit(self, event_data: "AsyncEventData", scope: list[str] | None = None) -> None:  # type: ignore[override]
         self._scope = scope or []
         await self.exit(event_data)
         self._scope = []
@@ -114,8 +112,7 @@ class AsyncTransition(Transition):
         Returns: boolean indicating whether or not the transition was
             successfully executed (True if successful, False if not).
         """
-        _LOGGER.debug("%sInitiating transition from state %s to state %s...",
-                      event_data.machine.name, self.source, self.dest)
+        _LOGGER.debug("%sInitiating transition from state %s to state %s...", event_data.machine.name, self.source, self.dest)
 
         await event_data.machine.callbacks(self.prepare, event_data)  # type: ignore[func-returns-value]
         _LOGGER.debug("%sExecuted callbacks before conditions.", event_data.machine.name)
@@ -155,6 +152,7 @@ class AsyncTransition(Transition):
 
 class NestedAsyncTransition(AsyncTransition, NestedTransition):
     """Representation of an asynchronous transition managed by a ``HierarchicalMachine`` instance."""
+
     async def _change_state(self, event_data: EventData) -> None:  # type: ignore[override]
         if hasattr(event_data.machine, "model_graphs"):
             graph = event_data.machine.model_graphs[id(event_data.model)]
@@ -198,8 +196,9 @@ class AsyncEvent(Event):
             if self._is_valid_source(event_data.state):
                 await self._process(event_data)
         except BaseException as err:  # pylint: disable=broad-except; Exception will be handled elsewhere
-            _LOGGER.error("%sException was raised while processing the trigger '%s': %s",
-                          self.machine.name, event_data.event.name, repr(err))
+            _LOGGER.error(
+                "%sException was raised while processing the trigger '%s': %s", self.machine.name, event_data.event.name, repr(err)
+            )
             event_data.error = err  # type: ignore[assignment]
             if self.machine.on_exception:
                 await self.machine.callbacks(self.machine.on_exception, event_data)  # type: ignore[func-returns-value]
@@ -210,10 +209,7 @@ class AsyncEvent(Event):
                 await self.machine.callbacks(self.machine.finalize_event, event_data)  # type: ignore[func-returns-value]
                 _LOGGER.debug("%sExecuted machine finalize callbacks", self.machine.name)
             except BaseException as err:  # pylint: disable=broad-except; Exception will be handled elsewhere
-                _LOGGER.error("%sWhile executing finalize callbacks a %s occurred: %s.",
-                              self.machine.name,
-                              type(err).__name__,
-                              str(err))
+                _LOGGER.error("%sWhile executing finalize callbacks a %s occurred: %s.", self.machine.name, type(err).__name__, str(err))
         return event_data.result
 
     async def _process(self, event_data: EventData) -> None:  # type: ignore[override]
@@ -307,38 +303,64 @@ class AsyncMachine(Machine):
     state_cls = AsyncState
     transition_cls = AsyncTransition
     event_cls = AsyncEvent
-    async_tasks: Dict[int, List['asyncio.Task[Any]']] = {}
-    protected_tasks: List['asyncio.Task[Any]'] = []
-    current_context: contextvars.ContextVar[Optional['asyncio.Task[Any]']] = contextvars.ContextVar('current_context', default=None)
+    async_tasks: dict[int, list["asyncio.Task[Any]"]] = {}
+    protected_tasks: list["asyncio.Task[Any]"] = []
+    current_context: contextvars.ContextVar[Optional["asyncio.Task[Any]"]] = contextvars.ContextVar("current_context", default=None)
 
-    def __init__(self, model: Any = Machine.self_literal, states: Optional[List[Any]] = None,
-                 initial: str = 'initial', transitions: Optional[List[Any]] = None,
-                 send_event: bool = False, auto_transitions: bool = True,
-                 ordered_transitions: bool = False, ignore_invalid_triggers: Optional[bool] = None,
-                 before_state_change: Optional[Callback] = None, after_state_change: Optional[Callback] = None,
-                 name: Optional[str] = None,
-                 queued: Union[bool, str] = False, prepare_event: Optional[Callback] = None,
-                 finalize_event: Optional[Callback] = None, model_attribute: str = 'state',
-                 model_override: bool = False, on_exception: Optional[Callback] = None,
-                 on_final: Optional[Callback] = None, **kwargs: Any) -> None:
+    def __init__(
+        self,
+        model: Any = Machine.self_literal,
+        states: list[Any] | None = None,
+        initial: str = "initial",
+        transitions: list[Any] | None = None,
+        send_event: bool = False,
+        auto_transitions: bool = True,
+        ordered_transitions: bool = False,
+        ignore_invalid_triggers: bool | None = None,
+        before_state_change: Callback | None = None,
+        after_state_change: Callback | None = None,
+        name: str | None = None,
+        queued: bool | str = False,
+        prepare_event: Callback | None = None,
+        finalize_event: Callback | None = None,
+        model_attribute: str = "state",
+        model_override: bool = False,
+        on_exception: Callback | None = None,
+        on_final: Callback | None = None,
+        **kwargs: Any,
+    ) -> None:
 
-        super().__init__(model=None, states=states, initial=initial, transitions=transitions,
-                         send_event=send_event, auto_transitions=auto_transitions,
-                         ordered_transitions=ordered_transitions, ignore_invalid_triggers=ignore_invalid_triggers,
-                         before_state_change=before_state_change, after_state_change=after_state_change, name=name,
-                         queued=bool(queued), prepare_event=prepare_event, finalize_event=finalize_event,
-                         model_attribute=model_attribute, model_override=model_override,
-                         on_exception=on_exception, on_final=on_final, **kwargs)
+        super().__init__(
+            model=None,
+            states=states,
+            initial=initial,
+            transitions=transitions,
+            send_event=send_event,
+            auto_transitions=auto_transitions,
+            ordered_transitions=ordered_transitions,
+            ignore_invalid_triggers=ignore_invalid_triggers,
+            before_state_change=before_state_change,
+            after_state_change=after_state_change,
+            name=name,
+            queued=bool(queued),
+            prepare_event=prepare_event,
+            finalize_event=finalize_event,
+            model_attribute=model_attribute,
+            model_override=model_override,
+            on_exception=on_exception,
+            on_final=on_final,
+            **kwargs,
+        )
 
-        self._transition_queue_dict: Dict[int, 'deque[partial[Any]]'] = _DictionaryMock(self._transition_queue) if queued is True else {}
-        self._queued: Union[bool, str] = queued  # type: ignore[assignment]
+        self._transition_queue_dict: dict[int, deque[partial[Any]]] = _DictionaryMock(self._transition_queue) if queued is True else {}
+        self._queued: bool | str = queued  # type: ignore[assignment]
         for model in listify(model):
             self.add_model(model)
 
     # TODO: This async override of sync parent method requires a generic-based async/sync separation architecture
-    def add_model(self, model: Any, initial: Optional[str] = None) -> None:  # type: ignore[override]
+    def add_model(self, model: Any, initial: str | None = None) -> None:  # type: ignore[override]
         super().add_model(model, initial)
-        if self.has_queue == 'model':  # type: ignore[comparison-overlap]
+        if self.has_queue == "model":  # type: ignore[comparison-overlap]
             for mod in listify(model):
                 self._transition_queue_dict[id(self) if mod is self.self_literal else id(mod)] = deque()
 
@@ -380,7 +402,7 @@ class AsyncMachine(Machine):
             await res
 
     @staticmethod
-    async def await_all(callables: List[Callable[[], Any]]) -> List[Any]:
+    async def await_all(callables: list[Callable[[], Any]]) -> list[Any]:
         """
         Executes callables without parameters in parallel and collects their results.
         Args:
@@ -392,11 +414,13 @@ class AsyncMachine(Machine):
         return await asyncio.gather(*[func() for func in callables])
 
     async def switch_model_context(self, model: Any) -> None:
-        warnings.warn("Please replace 'AsyncMachine.switch_model_context' with "
-                      "'AsyncMachine.cancel_running_transitions'.", category=DeprecationWarning)
+        warnings.warn(
+            "Please replace 'AsyncMachine.switch_model_context' with 'AsyncMachine.cancel_running_transitions'.",
+            category=DeprecationWarning,
+        )
         await self.cancel_running_transitions(model)
 
-    async def cancel_running_transitions(self, model: Any, msg: Optional[str] = None) -> None:
+    async def cancel_running_transitions(self, model: Any, msg: str | None = None) -> None:
         """
         This method is called by an `AsyncTransition` when all conditional tests have passed
         and the transition will happen. This requires already running tasks to be cancelled.
@@ -409,7 +433,9 @@ class AsyncMachine(Machine):
                 "When you call cancel_running_transitions with a custom message "
                 "transitions will re-raise all raised CancelledError. "
                 "Make sure to catch them in your code. "
-                "The parameter 'msg' will likely be removed in a future release.", category=DeprecationWarning)
+                "The parameter 'msg' will likely be removed in a future release.",
+                category=DeprecationWarning,
+            )
         for running_task in self.async_tasks.get(id(model), []):
             if self.current_context.get() == running_task or running_task in self.protected_tasks:
                 continue
@@ -457,7 +483,7 @@ class AsyncMachine(Machine):
         and callbacks, but will not receive updates when states or transitions are added to the Machine.
         If an event queue is used, all queued events of that model will be removed."""
         models = listify(model)
-        if self.has_queue == 'model':  # type: ignore[comparison-overlap]
+        if self.has_queue == "model":  # type: ignore[comparison-overlap]
             for mod in models:
                 del self._transition_queue_dict[id(mod)]
                 self.models.remove(mod)
@@ -530,8 +556,8 @@ class AsyncMachine(Machine):
 
 class HierarchicalAsyncMachine(HierarchicalMachine, AsyncMachine):
     """Asynchronous variant of transitions.extensions.nesting.HierarchicalMachine.
-        An asynchronous hierarchical machine REQUIRES AsyncNestedStates, AsyncNestedEvent and AsyncNestedTransitions
-        (or any subclass of it) to operate.
+    An asynchronous hierarchical machine REQUIRES AsyncNestedStates, AsyncNestedEvent and AsyncNestedTransitions
+    (or any subclass of it) to operate.
     """
 
     state_cls = NestedAsyncState
@@ -578,19 +604,18 @@ class HierarchicalAsyncMachine(HierarchicalMachine, AsyncMachine):
                 await self.callbacks(self.finalize_event, event_data)
                 _LOGGER.debug("%sExecuted machine finalize callbacks", self.name)
             except BaseException as err:  # pylint: disable=broad-except; Exception will be handled elsewhere
-                _LOGGER.error("%sWhile executing finalize callbacks a %s occurred: %s.",
-                              self.name,
-                              type(err).__name__,
-                              str(err))
+                _LOGGER.error("%sWhile executing finalize callbacks a %s occurred: %s.", self.name, type(err).__name__, str(err))
         return event_data.result
 
     # TODO: This async override of sync parent method requires a generic-based async/sync separation architecture
-    async def _trigger_event_nested(self, event_data: AsyncEventData, _trigger: str, _state_tree: Optional[Dict[str, Any]]) -> Optional[bool]:  # type: ignore[override]
+    async def _trigger_event_nested(self, event_data: AsyncEventData, _trigger: str, _state_tree: dict[str, Any] | None) -> bool | None:  # type: ignore[override]
         model = event_data.model
         if _state_tree is None:
-            _state_tree = self.build_state_tree(listify(getattr(model, self.model_attribute)),  # type: ignore[arg-type]
-                                                self.state_cls.separator)
-        res: Dict[str, Optional[bool]] = {}
+            _state_tree = self.build_state_tree(
+                listify(getattr(model, self.model_attribute)),  # type: ignore[arg-type]
+                self.state_cls.separator,
+            )
+        res: dict[str, bool | None] = {}
         for key, value in _state_tree.items():
             if value:
                 with self(key):
@@ -613,12 +638,11 @@ class HierarchicalAsyncMachine(HierarchicalMachine, AsyncMachine):
         return False
 
     # TODO: This async override of sync parent method requires a generic-based async/sync separation architecture
-    async def _can_trigger_nested(self, model: Any, trigger: str, path: List[str], *args: Any, **kwargs: Any) -> bool:  # type: ignore[override]
+    async def _can_trigger_nested(self, model: Any, trigger: str, path: list[str], *args: Any, **kwargs: Any) -> bool:  # type: ignore[override]
         if trigger in self.events:
             source_path = copy.copy(path)
             while source_path:
-                event_data = AsyncEventData(self.get_state(source_path), AsyncEvent(name=trigger, machine=self), self,
-                                            model, args, kwargs)
+                event_data = AsyncEventData(self.get_state(source_path), AsyncEvent(name=trigger, machine=self), self, model, args, kwargs)
                 state_name = self.state_cls.separator.join(source_path)
                 for transition in self.events[trigger].transitions.get(state_name, []):
                     try:
@@ -666,7 +690,7 @@ class AsyncTimeout(AsyncState):
                 if timeout is not passed or equal 0.
         """
         self.timeout: float = kwargs.pop("timeout", 0)
-        self._on_timeout: Optional[CallbackList] = None
+        self._on_timeout: CallbackList | None = None
         if self.timeout > 0:
             try:
                 self.on_timeout = kwargs.pop("on_timeout")
@@ -674,11 +698,11 @@ class AsyncTimeout(AsyncState):
                 raise AttributeError("Timeout state requires 'on_timeout' when timeout is set.") from None
         else:
             self.on_timeout = kwargs.pop("on_timeout", None)
-        self.runner: Dict[int, 'asyncio.Task[Any]'] = {}
+        self.runner: dict[int, asyncio.Task[Any]] = {}
         super().__init__(*args, **kwargs)
 
     # TODO: This async override of sync parent method requires a generic-based async/sync separation architecture
-    async def enter(self, event_data: 'AsyncEventData') -> None:  # type: ignore[override]
+    async def enter(self, event_data: "AsyncEventData") -> None:  # type: ignore[override]
         """
         Extends `transitions.core.State.enter` by starting a timeout timer for
         the current model when the state is entered and self.timeout is larger
@@ -692,7 +716,7 @@ class AsyncTimeout(AsyncState):
         await super().enter(event_data)
 
     # TODO: This async override of sync parent method requires a generic-based async/sync separation architecture
-    async def exit(self, event_data: 'AsyncEventData') -> None:  # type: ignore[override]
+    async def exit(self, event_data: "AsyncEventData") -> None:  # type: ignore[override]
         """
         Cancels running timeout tasks stored in `self.runner` first (when not note) before
         calling further exit callbacks.
@@ -708,7 +732,7 @@ class AsyncTimeout(AsyncState):
             timer_task.cancel()
         await super().exit(event_data)
 
-    def create_timer(self, event_data: 'AsyncEventData') -> 'asyncio.Task[Any]':
+    def create_timer(self, event_data: "AsyncEventData") -> "asyncio.Task[Any]":
         """
         Creates and returns a running timer. Shields self._process_timeout to prevent cancellation when
         transitioning away from the current state (which cancels the timer) while processing timeout callbacks.
@@ -717,21 +741,23 @@ class AsyncTimeout(AsyncState):
 
         Returns (cancellable): A running timer with a cancel method
         """
+
         async def _timeout() -> None:
             await asyncio.sleep(self.timeout)
             await asyncio.shield(self._process_timeout(event_data))
+
         return asyncio.create_task(_timeout())
 
-    async def _process_timeout(self, event_data: 'AsyncEventData') -> None:
+    async def _process_timeout(self, event_data: "AsyncEventData") -> None:
         _LOGGER.debug("%sTimeout state %s. Processing callbacks...", event_data.machine.name, self.name)
-        event_data = AsyncEventData(event_data.state, AsyncEvent("timeout", event_data.machine),
-                                    event_data.machine, event_data.model, args=tuple(), kwargs={})
+        event_data = AsyncEventData(
+            event_data.state, AsyncEvent("timeout", event_data.machine), event_data.machine, event_data.model, args=tuple(), kwargs={}
+        )
         token = AsyncMachine.current_context.set(None)
         try:
             await event_data.machine.callbacks(self.on_timeout, event_data)  # type: ignore[func-returns-value]
         except BaseException as err:
-            _LOGGER.warning("%sException raised while processing timeout!",
-                            event_data.machine.name)
+            _LOGGER.warning("%sException raised while processing timeout!", event_data.machine.name)
             event_data.error = err  # type: ignore[assignment]
             try:
                 if event_data.machine.on_exception:
@@ -739,8 +765,12 @@ class AsyncTimeout(AsyncState):
                 else:
                     raise
             except BaseException as err2:  # pylint: disable=broad-except
-                _LOGGER.error("%sHandling timeout exception '%s' caused another exception: %s. "
-                              "Cancel running transitions...", event_data.machine.name, repr(err), repr(err2))
+                _LOGGER.error(
+                    "%sHandling timeout exception '%s' caused another exception: %s. Cancel running transitions...",
+                    event_data.machine.name,
+                    repr(err),
+                    repr(err2),
+                )
                 await event_data.machine.cancel_running_transitions(event_data.model)
         finally:
             AsyncMachine.current_context.reset(token)
@@ -754,22 +784,21 @@ class AsyncTimeout(AsyncState):
         return self._on_timeout  # type: ignore[return-value]
 
     @on_timeout.setter
-    def on_timeout(self, value: Optional[CallbackList]) -> None:
+    def on_timeout(self, value: CallbackList | None) -> None:
         """Listifies passed values and assigns them to on_timeout."""
         self._on_timeout = listify(value)  # type: ignore[assignment]
 
 
 class _DictionaryMock(dict):  # type: ignore[type-arg]
-
-    def __init__(self, item: 'deque[Any]') -> None:
+    def __init__(self, item: "deque[Any]") -> None:
         super().__init__()
-        self._value: 'deque[Any]' = item
+        self._value: deque[Any] = item
 
-    def __setitem__(self, key: Any, item: 'deque[Any]') -> None:
+    def __setitem__(self, key: Any, item: "deque[Any]") -> None:
         self._value = item
 
-    def __getitem__(self, key: Any) -> 'deque[Any]':
+    def __getitem__(self, key: Any) -> "deque[Any]":
         return self._value
 
     def __repr__(self) -> str:
-        return repr("{{'*': {0}}}".format(self._value))
+        return repr(f"{{'*': {self._value}}}")

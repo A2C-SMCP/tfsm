@@ -1,28 +1,28 @@
 """
-    transitions.extensions.factory
-    ------------------------------
+transitions.extensions.factory
+------------------------------
 
-    Adds locking to machine methods as well as model functions that trigger events.
-    Additionally, the user can inject her/his own context manager into the machine if required.
+Adds locking to machine methods as well as model functions that trigger events.
+Additionally, the user can inject her/his own context manager into the machine if required.
 """
 
+import inspect
+import logging
 from collections import defaultdict
+from collections.abc import Generator
+from contextlib import ExitStack, contextmanager
 from functools import partial
 from threading import Lock, get_ident
-import inspect
-import warnings
-import logging
-from typing import Any, Generator, List, Tuple, Type, Optional, Union
-from contextlib import ExitStack, contextmanager
+from typing import Any
 
-from transitions.core import Machine, Event, listify
+from transitions.core import Event, Machine, listify
 
 _LOGGER = logging.getLogger(__name__)
 _LOGGER.addHandler(logging.NullHandler())
 
 
 @contextmanager
-def nested(*contexts: Any) -> Generator[Tuple[Any, ...], None, None]:
+def nested(*contexts: Any) -> Generator[tuple[Any, ...], None, None]:
     """Reimplementation of contextlib.nested for Python 3.
 
     This function was deprecated in Python 3.3 and removed in later versions.
@@ -36,14 +36,14 @@ def nested(*contexts: Any) -> Generator[Tuple[Any, ...], None, None]:
 
 class PicklableLock:
     """A wrapper for threading.Lock which discards its state during pickling and
-        is reinitialized unlocked when unpickled.
+    is reinitialized unlocked when unpickled.
     """
 
     def __init__(self) -> None:
         self.lock: Lock = Lock()
 
     def __getstate__(self) -> str:
-        return ''
+        return ""
 
     def __setstate__(self, value: str) -> None:
         PicklableLock.__init__(self)
@@ -79,9 +79,9 @@ class LockedEvent(Event):
         # to Machine users.
         if self.machine._ident.current != get_ident():
             with nested(*self.machine.model_context_map[id(model)]):
-                return super(LockedEvent, self).trigger(model, *args, **kwargs)
+                return super().trigger(model, *args, **kwargs)
         else:
-            return super(LockedEvent, self).trigger(model, *args, **kwargs)
+            return super().trigger(model, *args, **kwargs)
 
 
 class LockedMachine(Machine):
@@ -94,29 +94,56 @@ class LockedMachine(Machine):
 
     event_cls = LockedEvent
 
-    def __init__(self, model: Any = Machine.self_literal, states: Any = None, initial: Any = 'initial',
-                 transitions: Any = None, send_event: bool = False, auto_transitions: bool = True,
-                 ordered_transitions: bool = False, ignore_invalid_triggers: Any = None,
-                 before_state_change: Any = None, after_state_change: Any = None, name: Any = None,
-                 queued: bool = False, prepare_event: Any = None, finalize_event: Any = None,
-                 model_attribute: str = 'state', model_override: bool = False,
-                 on_exception: Any = None, on_final: Any = None,
-                 machine_context: Any = None, **kwargs: Any) -> None:
+    def __init__(
+        self,
+        model: Any = Machine.self_literal,
+        states: Any = None,
+        initial: Any = "initial",
+        transitions: Any = None,
+        send_event: bool = False,
+        auto_transitions: bool = True,
+        ordered_transitions: bool = False,
+        ignore_invalid_triggers: Any = None,
+        before_state_change: Any = None,
+        after_state_change: Any = None,
+        name: Any = None,
+        queued: bool = False,
+        prepare_event: Any = None,
+        finalize_event: Any = None,
+        model_attribute: str = "state",
+        model_override: bool = False,
+        on_exception: Any = None,
+        on_final: Any = None,
+        machine_context: Any = None,
+        **kwargs: Any,
+    ) -> None:
 
         self._ident: IdentManager = IdentManager()
-        machine_context_list: Union[List[Any], Tuple[Any, ...]] = listify(machine_context) or [PicklableLock()]
-        self.machine_context: List[Any] = list(machine_context_list)
+        machine_context_list: list[Any] | tuple[Any, ...] = listify(machine_context) or [PicklableLock()]
+        self.machine_context: list[Any] = list(machine_context_list)
         self.machine_context.append(self._ident)
-        self.model_context_map: defaultdict[Any, List[Any]] = defaultdict(list)
+        self.model_context_map: defaultdict[Any, list[Any]] = defaultdict(list)
 
-        super(LockedMachine, self).__init__(
-            model=model, states=states, initial=initial, transitions=transitions,
-            send_event=send_event, auto_transitions=auto_transitions,
-            ordered_transitions=ordered_transitions, ignore_invalid_triggers=ignore_invalid_triggers,
-            before_state_change=before_state_change, after_state_change=after_state_change, name=name,
-            queued=queued, prepare_event=prepare_event, finalize_event=finalize_event,
-            model_attribute=model_attribute, model_override=model_override, on_exception=on_exception,
-            on_final=on_final, **kwargs
+        super().__init__(
+            model=model,
+            states=states,
+            initial=initial,
+            transitions=transitions,
+            send_event=send_event,
+            auto_transitions=auto_transitions,
+            ordered_transitions=ordered_transitions,
+            ignore_invalid_triggers=ignore_invalid_triggers,
+            before_state_change=before_state_change,
+            after_state_change=after_state_change,
+            name=name,
+            queued=queued,
+            prepare_event=prepare_event,
+            finalize_event=finalize_event,
+            model_attribute=model_attribute,
+            model_override=model_override,
+            on_exception=on_exception,
+            on_final=on_final,
+            **kwargs,
         )
 
     # When we attempt to pickle a locked machine, using IDs wont suffice to unpickle the contexts since
@@ -125,8 +152,8 @@ class LockedMachine(Machine):
     # objects in locked machine.
     def __getstate__(self) -> dict[str, Any]:
         state = {k: v for k, v in self.__dict__.items()}
-        del state['model_context_map']
-        state['_model_context_map_store'] = {mod: self.model_context_map[id(mod)] for mod in self.models}
+        del state["model_context_map"]
+        state["_model_context_map_store"] = {mod: self.model_context_map[id(mod)] for mod in self.models}
         return state
 
     def __setstate__(self, state: dict[str, Any]) -> None:
@@ -146,7 +173,7 @@ class LockedMachine(Machine):
         """
         models = listify(model)
         model_context_list = listify(model_context) if model_context is not None else []
-        super(LockedMachine, self).add_model(models, initial)
+        super().add_model(models, initial)
 
         for mod in models:
             mod = self if mod is self.self_literal else mod
@@ -155,34 +182,34 @@ class LockedMachine(Machine):
 
     def remove_model(self, model: Any) -> Any:
         """Extends `transitions.core.Machine.remove_model` by removing model specific context maps
-            from the machine when the model itself is removed. """
+        from the machine when the model itself is removed."""
         models = listify(model)
 
         for mod in models:
             del self.model_context_map[id(mod)]
 
-        return super(LockedMachine, self).remove_model(models)
+        return super().remove_model(models)
 
     def __getattribute__(self, item: str) -> Any:
-        get_attr = super(LockedMachine, self).__getattribute__
+        get_attr = super().__getattribute__
         tmp = get_attr(item)
-        if not item.startswith('_') and inspect.ismethod(tmp):
-            return partial(get_attr('_locked_method'), tmp)
+        if not item.startswith("_") and inspect.ismethod(tmp):
+            return partial(get_attr("_locked_method"), tmp)
         return tmp
 
     def __getattr__(self, item: str) -> Any:
         try:
-            return super(LockedMachine, self).__getattribute__(item)
+            return super().__getattribute__(item)
         except AttributeError:
-            return super(LockedMachine, self).__getattr__(item)
+            return super().__getattr__(item)
 
     # Determine if the returned method is a partial and make sure the returned partial has
     # not been created by Machine.__getattr__.
     # https://github.com/tyarkoni/transitions/issues/214
     def _add_model_to_state(self, state: Any, model: Any) -> None:
-        super(LockedMachine, self)._add_model_to_state(state, model)  # pylint: disable=protected-access
+        super()._add_model_to_state(state, model)  # pylint: disable=protected-access
         for prefix in self.state_cls.dynamic_methods:
-            callback = "{0}_{1}".format(prefix, self._get_qualified_state_name(state))
+            callback = f"{prefix}_{self._get_qualified_state_name(state)}"
             func = getattr(model, callback, None)
             if isinstance(func, partial) and func.func != state.add_callback:
                 state.add_callback(prefix[3:], callback)

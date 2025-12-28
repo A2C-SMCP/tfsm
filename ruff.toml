@@ -1,0 +1,41 @@
+line-length = 140
+target-version = "py311"
+
+[lint]
+preview = true
+select = [
+    "E",  # pycodestyle errors
+    "F",  # pyflakes
+    "I",  # isort
+    "W",  # pycodestyle warnings
+    "B",  # flake8-bugbear
+    "UP", # pyupgrade
+    "ANN", # flake8-annotations
+    "COM", # flake8-commas: enforce trailing commas in multiline
+]
+extend-ignore = [
+    "UP009",   # UTF-8 encoding declaration (unnecessary in Python 3)
+    "ANN401",  # Any type
+    "COM812",  # Conflicts with formatter
+    "ANN204",  # __init__ should not have return type annotation
+    "UP031",   # Percent formatting (keep existing style for now)
+    "B904",    # raise ... from err (may change behavior)
+    "E501",    # Line length (allow some long lines)
+    "B020",    # Loop control variable overrides (false positives in common patterns)
+    "B028",    # No explicit stacklevel (may break logging)
+    "B007",    # Unused loop variables (common in cleanup loops)
+    "UP028",   # yield from (may change behavior)
+]
+
+[lint.per-file-ignores]
+"__init__.py" = ["F401"]  # Unused imports in __init__.py
+"tests/**/*.py" = ["F811", "F401", "B017", "ANN"]  # Redefinition and loose typing in test files
+
+[lint.isort]
+known-first-party = ["transitions"]
+
+[format]
+preview = true
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"

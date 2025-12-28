@@ -4,17 +4,18 @@ transitions
 
 A lightweight, object-oriented state machine implementation in Python. Requires Python 3.11+.
 """
+
+from .core import Event, EventData, Machine, MachineError, State, Transition
 from .version import __version__
-from .core import (State, Transition, Event, EventData, Machine, MachineError)
 
 __all__ = [
-    '__version__',
-    'State',
-    'Transition',
-    'Event',
-    'EventData',
-    'Machine',
-    'MachineError',
+    "__version__",
+    "State",
+    "Transition",
+    "Event",
+    "EventData",
+    "Machine",
+    "MachineError",
 ]
 
 __copyright__ = "Copyright (c) 2024 Tal Yarkoni, Alexander Neumann"

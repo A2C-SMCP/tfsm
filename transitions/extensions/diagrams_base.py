@@ -1,14 +1,15 @@
 """
-    transitions.extensions.diagrams_base
-    ------------------------------------
+transitions.extensions.diagrams_base
+------------------------------------
 
-    The class BaseGraph implements the common ground for Graphviz backends.
+The class BaseGraph implements the common ground for Graphviz backends.
 """
 
-import copy
 import abc
+import copy
 import logging
-from typing import TYPE_CHECKING, Any, Generator, Iterator, List, Tuple, Optional, Protocol, Union, cast
+from collections.abc import Generator, Iterator
+from typing import TYPE_CHECKING, Any, Protocol, Union, cast
 
 _LOGGER = logging.getLogger(__name__)
 _LOGGER.addHandler(logging.NullHandler())
@@ -16,10 +17,9 @@ _LOGGER.addHandler(logging.NullHandler())
 # Type checking imports to avoid circular imports
 if TYPE_CHECKING:
     from .diagrams import GraphMachine
-    from ..core import State
 
 # Graph object type - can be from different backends (pygraphviz, graphviz, etc.)
-GraphObject = Union[Any, None]
+GraphObject = Any | None
 
 # Type for state classes that have a separator attribute
 StateClassWithSeparator = Any
@@ -30,11 +30,11 @@ class ContextManagerMachine(Protocol):
     This is used by HierarchicalMachine to traverse nested states.
     """
 
-    def __call__(self, state: Any) -> 'ContextManagerMachine':
+    def __call__(self, state: Any) -> "ContextManagerMachine":
         """Enter a state context."""
         ...
 
-    def __enter__(self) -> 'ContextManagerMachine':
+    def __enter__(self) -> "ContextManagerMachine":
         """Enter the context manager."""
         ...
 
@@ -50,7 +50,7 @@ class ContextManagerMachine(Protocol):
         """Get the markup configuration."""
         ...
 
-    def _get_enum_path(self, state: Any) -> List[Any]:
+    def _get_enum_path(self, state: Any) -> list[Any]:
         """Get the enum path for a state."""
         ...
 
@@ -78,9 +78,9 @@ class BaseGraph(abc.ABC):
         fsm_graph (object): The AGraph-like object that holds the graphviz information
     """
 
-    def __init__(self, machine: Union['GraphMachine', 'ContextManagerMachine']) -> None:
+    def __init__(self, machine: Union["GraphMachine", "ContextManagerMachine"]) -> None:
         # Use Union to support both plain GraphMachine and hierarchical variants
-        self.machine: Union['GraphMachine', 'ContextManagerMachine'] = machine
+        self.machine: GraphMachine | ContextManagerMachine = machine
         self.fsm_graph: GraphObject = None
         self.generate()
 
@@ -109,7 +109,7 @@ class BaseGraph(abc.ABC):
         """
 
     @abc.abstractmethod
-    def get_graph(self, title: Optional[str] = None, roi_state: Optional[Any] = None) -> GraphObject:
+    def get_graph(self, title: str | None = None, roi_state: Any | None = None) -> GraphObject:
         """Returns a graph object.
         Args:
             title (str): Title of the generated graph
@@ -134,7 +134,7 @@ class BaseGraph(abc.ABC):
             if "on_exit" in state:
                 label += r"\l- exit:\l  + " + r"\l  + ".join(state["on_exit"])
             if "timeout" in state:
-                label += r'\l- timeout(' + state['timeout'] + 's) -> (' + ', '.join(state['on_timeout']) + ')'
+                label += r"\l- timeout(" + state["timeout"] + "s) -> (" + ", ".join(state["on_timeout"]) + ")"
         # end each label with a left-aligned newline
         return label + r"\l"
 
@@ -171,13 +171,11 @@ class BaseGraph(abc.ABC):
         if self.machine.show_conditions and any(prop in tran for prop in ["conditions", "unless"]):
             edge_label = "{edge_label} [{conditions}]".format(
                 edge_label=edge_label,
-                conditions=" & ".join(
-                    tran.get("conditions", []) + ["!" + u for u in tran.get("unless", [])]
-                ),
+                conditions=" & ".join(tran.get("conditions", []) + ["!" + u for u in tran.get("unless", [])]),
             )
         return edge_label
 
-    def _get_global_name(self, path: List[Any]) -> str:
+    def _get_global_name(self, path: list[Any]) -> str:
         """Get the global name by traversing the path.
         Args:
             path: List of state names representing the path
@@ -202,23 +200,22 @@ class BaseGraph(abc.ABC):
         Yields:
             Flattened elements (state names or state objects)
         """
-        return (e for a in lists for e in
-                (self._flatten(*a)
-                 if isinstance(a, (tuple, list))
-                 else (a.name if hasattr(a, 'name') else str(a),)))
+        return (
+            e for a in lists for e in (self._flatten(*a) if isinstance(a, (tuple, list)) else (a.name if hasattr(a, "name") else str(a),))
+        )
 
-    def _get_elements(self) -> Tuple[List[Any], List[dict[str, Any]]]:
+    def _get_elements(self) -> tuple[list[Any], list[dict[str, Any]]]:
         """Extract states and transitions from the machine's markup configuration.
         Returns:
             A tuple containing:
                 - List of state objects/dictionaries
                 - List of transition dictionaries
         """
-        states: List[Any] = []
-        transitions: List[dict[str, Any]] = []
+        states: list[Any] = []
+        transitions: list[dict[str, Any]] = []
         try:
             markup: dict[str, Any] = self.machine.get_markup_config()
-            queue: List[Tuple[List[str], Any]] = [([], markup)]
+            queue: list[tuple[list[str], Any]] = [([], markup)]
 
             # Get separator once for efficiency
             separator = getattr(self.machine.state_cls, "separator", "_")

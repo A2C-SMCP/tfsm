@@ -8,11 +8,9 @@ and made easier to access with a convenience factory.
 """
 
 from .diagrams import GraphMachine, HierarchicalGraphMachine
-from .nesting import HierarchicalMachine
+from .factory import LockedGraphMachine, LockedHierarchicalGraphMachine, LockedHierarchicalMachine, MachineFactory
 from .locking import LockedMachine
-
-from .factory import MachineFactory, LockedHierarchicalGraphMachine
-from .factory import LockedHierarchicalMachine, LockedGraphMachine
+from .nesting import HierarchicalMachine
 
 try:
     # only available for Python 3
@@ -22,16 +20,16 @@ except (ImportError, SyntaxError):  # pragma: no cover
     pass
 
 __all__ = [
-    'GraphMachine',
-    'HierarchicalGraphMachine',
-    'HierarchicalMachine',
-    'LockedMachine',
-    'MachineFactory',
-    'LockedHierarchicalGraphMachine',
-    'LockedHierarchicalMachine',
-    'LockedGraphMachine',
-    'AsyncMachine',
-    'HierarchicalAsyncMachine',
-    'AsyncGraphMachine',
-    'HierarchicalAsyncGraphMachine',
+    "GraphMachine",
+    "HierarchicalGraphMachine",
+    "HierarchicalMachine",
+    "LockedMachine",
+    "MachineFactory",
+    "LockedHierarchicalGraphMachine",
+    "LockedHierarchicalMachine",
+    "LockedGraphMachine",
+    "AsyncMachine",
+    "HierarchicalAsyncMachine",
+    "AsyncGraphMachine",
+    "HierarchicalAsyncGraphMachine",
 ]
