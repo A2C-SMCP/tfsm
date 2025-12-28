@@ -1,8 +1,3 @@
-try:
-    from builtins import object
-except ImportError:
-    pass
-
 import time
 from threading import Thread
 import logging

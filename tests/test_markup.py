@@ -1,8 +1,3 @@
-try:
-    from builtins import object
-except ImportError:
-    pass
-
 from functools import partial
 
 from transitions.extensions.markup import MarkupMachine, HierarchicalMarkupMachine, rep

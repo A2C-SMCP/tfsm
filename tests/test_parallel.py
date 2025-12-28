@@ -1,8 +1,3 @@
-try:
-    from builtins import object
-except ImportError:
-    pass
-
 from collections import OrderedDict
 
 from transitions.extensions.nesting import NestedState as State, _build_state_list

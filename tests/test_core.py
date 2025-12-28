@@ -1,8 +1,3 @@
-try:
-    from builtins import object
-except ImportError:
-    pass
-
 import sys
 from typing import TYPE_CHECKING, List
 from functools import partial

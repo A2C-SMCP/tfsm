@@ -26,8 +26,7 @@ classifiers = [
 ]
 
 dependencies = [
-    # Temporary: six still used in code, will be removed in Stage 2
-    "six",
+    # No runtime dependencies (six removed in Stage 2)
 ]
 
 [project.optional-dependencies]

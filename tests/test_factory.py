@@ -1,8 +1,3 @@
-try:
-    from builtins import object
-except ImportError:
-    pass
-
 from unittest import TestCase
 from transitions.extensions import MachineFactory
 

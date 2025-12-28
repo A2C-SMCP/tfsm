@@ -1,8 +1,3 @@
-try:
-    from builtins import object
-except ImportError:
-    pass
-
 from transitions import MachineError
 from transitions.extensions import MachineFactory
 from transitions.extensions.nesting import NestedState, HierarchicalMachine
