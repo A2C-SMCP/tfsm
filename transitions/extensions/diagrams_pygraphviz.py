@@ -7,6 +7,7 @@
 """
 
 import logging
+from typing import TYPE_CHECKING, Any, List, Optional, TypeAlias
 
 try:
     import pygraphviz as pgv
@@ -16,6 +17,13 @@ except ImportError:
 from .nesting import NestedState
 from .diagrams_base import BaseGraph
 
+if TYPE_CHECKING:
+    from .diagrams_base import ContextManagerMachine
+
+# Type alias for pygraphviz AGraph objects
+# Use Any since pygraphviz doesn't provide type stubs
+AGraphType: TypeAlias = Any
+
 _LOGGER = logging.getLogger(__name__)
 _LOGGER.addHandler(logging.NullHandler())
 
@@ -23,12 +31,12 @@ _LOGGER.addHandler(logging.NullHandler())
 class Graph(BaseGraph):
     """Graph creation for transitions.core.Machine."""
 
-    def _add_nodes(self, states, container):
+    def _add_nodes(self, states: List[Any], container: AGraphType) -> None:
         for state in states:
-            shape = self.machine.style_attributes.get('node', {}).get('default', {}).get('shape', None)
+            shape = self.machine.style_attributes.get('node', {}).get('default', {}).get('shape', None)  # type: ignore[union-attr]
             container.add_node(state['name'], label=self._convert_state_attributes(state), shape=shape)
 
-    def _add_edges(self, transitions, container):
+    def _add_edges(self, transitions: List[Any], container: AGraphType) -> None:
         for transition in transitions:
             src = transition['source']
             edge_attr = {'label': self._transition_label(transition)}
@@ -42,23 +50,22 @@ class Graph(BaseGraph):
             else:
                 container.add_edge(src, dst, **edge_attr)
 
-    def generate(self):
-
-        self.fsm_graph = pgv.AGraph(**self.machine.machine_attributes)
-        self.fsm_graph.node_attr.update(self.machine.style_attributes.get('node', {}).get('default', {}))
-        self.fsm_graph.edge_attr.update(self.machine.style_attributes.get('edge', {}).get('default', {}))
+    def generate(self) -> None:
+        self.fsm_graph = pgv.AGraph(**self.machine.machine_attributes)  # type: ignore[union-attr]
+        self.fsm_graph.node_attr.update(self.machine.style_attributes.get('node', {}).get('default', {}))  # type: ignore[union-attr]
+        self.fsm_graph.edge_attr.update(self.machine.style_attributes.get('edge', {}).get('default', {}))  # type: ignore[union-attr]
         states, transitions = self._get_elements()
         self._add_nodes(states, self.fsm_graph)
         self._add_edges(transitions, self.fsm_graph)
-        setattr(self.fsm_graph, 'style_attributes', self.machine.style_attributes)
+        setattr(self.fsm_graph, 'style_attributes', self.machine.style_attributes)  # type: ignore[union-attr]
 
-    def get_graph(self, title=None, roi_state=None):
+    def get_graph(self, title: Optional[str] = None, roi_state: Optional[Any] = None) -> AGraphType:
         if title:
-            self.fsm_graph.graph_attr['label'] = title
+            self.fsm_graph.graph_attr['label'] = title  # type: ignore[union-attr]
         if roi_state:
             filtered = _copy_agraph(self.fsm_graph)
-            kept_nodes = set()
-            kept_edges = set()
+            kept_nodes = set()  # type: set[Any]
+            kept_edges = set()  # type: set[Any]
             sep = getattr(self.machine.state_cls, "separator", None)
             for state in self._flatten(roi_state):
                 kept_nodes.add(state)
@@ -70,14 +77,16 @@ class Graph(BaseGraph):
 
             # remove all edges that have no connection to the currently active state
             for state in list(kept_nodes):
-                for edge in filtered.out_edges_iter(state):
-                    kept_nodes.add(edge[1])
-                    kept_edges.add(edge)
-
-                for edge in filtered.in_edges(state):
-                    if edge.attr['color'] == self.fsm_graph.style_attributes.get('edge', {}).get('previous', {}).get('color', None):
-                        kept_nodes.add(edge[0])
+                for edge in filtered.out_edges_iter():
+                    if edge[0] == state:
+                        kept_nodes.add(edge[1])
                         kept_edges.add(edge)
+
+                for edge in filtered.in_edges():
+                    if edge[1] == state:
+                        if edge.attr['color'] == self.fsm_graph.style_attributes.get('edge', {}).get('previous', {}).get('color', None):  # type: ignore[union-attr]
+                            kept_nodes.add(edge[0])
+                            kept_edges.add(edge)
 
             for node in filtered.nodes():
                 if node not in kept_nodes:
@@ -90,43 +99,43 @@ class Graph(BaseGraph):
             return filtered
         return self.fsm_graph
 
-    def set_node_style(self, state, style):
-        node = self.fsm_graph.get_node(state.name if hasattr(state, "name") else state)
-        style_attr = self.fsm_graph.style_attributes.get('node', {}).get(style, {})
+    def set_node_style(self, state: Any, style: str) -> None:
+        node = self.fsm_graph.get_node(state.name if hasattr(state, "name") else state)  # type: ignore[union-attr]
+        style_attr = self.fsm_graph.style_attributes.get('node', {}).get(style, {})  # type: ignore[union-attr]
         node.attr.update(style_attr)
 
-    def set_previous_transition(self, src, dst):
+    def set_previous_transition(self, src: str, dst: str) -> None:
         try:
-            edge = self.fsm_graph.get_edge(src, dst)
+            edge = self.fsm_graph.get_edge(src, dst)  # type: ignore[union-attr]
         except KeyError:
-            self.fsm_graph.add_edge(src, dst)
-            edge = self.fsm_graph.get_edge(src, dst)
-        style_attr = self.fsm_graph.style_attributes.get('edge', {}).get('previous', {})
+            self.fsm_graph.add_edge(src, dst)  # type: ignore[union-attr]
+            edge = self.fsm_graph.get_edge(src, dst)  # type: ignore[union-attr]
+        style_attr = self.fsm_graph.style_attributes.get('edge', {}).get('previous', {})  # type: ignore[union-attr]
         edge.attr.update(style_attr)
         self.set_node_style(src, 'previous')
         self.set_node_style(dst, 'active')
 
-    def reset_styling(self):
-        for edge in self.fsm_graph.edges_iter():
-            style_attr = self.fsm_graph.style_attributes.get('edge', {}).get('default', {})
+    def reset_styling(self) -> None:
+        for edge in self.fsm_graph.edges_iter():  # type: ignore[union-attr]
+            style_attr = self.fsm_graph.style_attributes.get('edge', {}).get('default', {})  # type: ignore[union-attr]
             edge.attr.update(style_attr)
-        for node in self.fsm_graph.nodes_iter():
+        for node in self.fsm_graph.nodes_iter():  # type: ignore[union-attr]
             if 'point' not in node.attr['shape']:
-                style_attr = self.fsm_graph.style_attributes.get('node', {}).get('inactive', {})
+                style_attr = self.fsm_graph.style_attributes.get('node', {}).get('inactive', {})  # type: ignore[union-attr]
                 node.attr.update(style_attr)
-        for sub_graph in self.fsm_graph.subgraphs_iter():
-            style_attr = self.fsm_graph.style_attributes.get('graph', {}).get('default', {})
+        for sub_graph in self.fsm_graph.subgraphs_iter():  # type: ignore[union-attr]
+            style_attr = self.fsm_graph.style_attributes.get('graph', {}).get('default', {})  # type: ignore[union-attr]
             sub_graph.graph_attr.update(style_attr)
 
 
 class NestedGraph(Graph):
     """Graph creation support for transitions.extensions.nested.HierarchicalGraphMachine."""
 
-    def __init__(self, *args, **kwargs):
-        self.seen_transitions = []
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        self.seen_transitions: List[Any] = []
         super(NestedGraph, self).__init__(*args, **kwargs)
 
-    def _add_nodes(self, states, container, prefix='', default_style='default'):
+    def _add_nodes(self, states: List[Any], container: AGraphType, prefix: str = '', default_style: str = 'default') -> None:
         for state in states:
             name = prefix + state['name']
             label = self._convert_state_attributes(state)
@@ -135,17 +144,16 @@ class NestedGraph(Graph):
                 cluster_name = "cluster_" + name
                 is_parallel = isinstance(state.get('initial', ''), list)
                 sub = container.add_subgraph(name=cluster_name, label=label, rank='source',
-                                             **self.machine.style_attributes.get('graph', {}).get(default_style, {}))
+                                             **self.machine.style_attributes.get('graph', {}).get(default_style, {}))  # type: ignore[union-attr]
                 root_container = sub.add_subgraph(name=cluster_name + '_root', label='', color=None, rank='min')
                 width = '0' if is_parallel else '0.1'
                 root_container.add_node(name, shape='point', fillcolor='black', width=width)
                 self._add_nodes(state['children'], sub, prefix=prefix + state['name'] + NestedState.separator,
                                 default_style='parallel' if is_parallel else 'default')
             else:
-                container.add_node(name, label=label, **self.machine.style_attributes.get('node', {}).get(default_style, {}))
+                container.add_node(name, label=label, **self.machine.style_attributes.get('node', {}).get(default_style, {}))  # type: ignore[union-attr]
 
-    def _add_edges(self, transitions, container):
-
+    def _add_edges(self, transitions: List[Any], container: AGraphType) -> None:
         for transition in transitions:
             # enable customizable labels
             label_pos = 'label'
@@ -154,7 +162,7 @@ class NestedGraph(Graph):
                 dst = transition['dest']
             except KeyError:
                 dst = src
-            edge_attr = {}
+            edge_attr: dict[str, Any] = {}
             if _get_subgraph(container, 'cluster_' + src) is not None:
                 edge_attr['ltail'] = 'cluster_' + src
                 # edge_attr['minlen'] = "3"
@@ -170,7 +178,7 @@ class NestedGraph(Graph):
 
             # remove ltail when dst is a child of src
             if 'ltail' in edge_attr:
-                if _get_subgraph(container, edge_attr['ltail']).has_node(dst_name):
+                if _get_subgraph(container, edge_attr['ltail']).has_node(dst_name):  # type: ignore[union-attr]
                     del edge_attr['ltail']
 
             edge_attr[label_pos] = self._transition_label(transition)
@@ -180,26 +188,27 @@ class NestedGraph(Graph):
             else:
                 container.add_edge(src_name, dst_name, **edge_attr)
 
-    def set_node_style(self, state, style):
+    def set_node_style(self, state: Any, style: str) -> None:
         for state_name in self._get_state_names(state):
             self._set_node_style(state_name, style)
 
-    def _set_node_style(self, state, style):
+    def _set_node_style(self, state: str, style: str) -> None:
         try:
-            node = self.fsm_graph.get_node(state)
-            style_attr = self.fsm_graph.style_attributes.get('node', {}).get(style, {})
+            node = self.fsm_graph.get_node(state)  # type: ignore[union-attr]
+            style_attr = self.fsm_graph.style_attributes.get('node', {}).get(style, {})  # type: ignore[union-attr]
             node.attr.update(style_attr)
         except KeyError:
             subgraph = _get_subgraph(self.fsm_graph, state)
-            style_attr = self.fsm_graph.style_attributes.get('graph', {}).get(style, {})
-            subgraph.graph_attr.update(style_attr)
+            if subgraph is not None:
+                style_attr = self.fsm_graph.style_attributes.get('graph', {}).get(style, {})  # type: ignore[union-attr]
+                subgraph.graph_attr.update(style_attr)
 
-    def set_previous_transition(self, src, dst):
-        src = self._get_global_name(src.split(self.machine.state_cls.separator))
-        dst = self._get_global_name(dst.split(self.machine.state_cls.separator))
-        edge_attr = self.fsm_graph.style_attributes.get('edge', {}).get('previous', {}).copy()
+    def set_previous_transition(self, src: str, dst: str) -> None:
+        src = self._get_global_name(src.split(self.machine.state_cls.separator))  # type: ignore[union-attr]
+        dst = self._get_global_name(dst.split(self.machine.state_cls.separator))  # type: ignore[union-attr]
+        edge_attr = self.fsm_graph.style_attributes.get('edge', {}).get('previous', {}).copy()  # type: ignore[union-attr]
         try:
-            edge = self.fsm_graph.get_edge(src, dst)
+            edge = self.fsm_graph.get_edge(src, dst)  # type: ignore[union-attr]
         except KeyError:
             _src = src
             _dst = dst
@@ -208,16 +217,16 @@ class NestedGraph(Graph):
             if _get_subgraph(self.fsm_graph, 'cluster_' + dst):
                 edge_attr['lhead'] = "cluster_" + dst
             try:
-                edge = self.fsm_graph.get_edge(_src, _dst)
+                edge = self.fsm_graph.get_edge(_src, _dst)  # type: ignore[union-attr]
             except KeyError:
-                self.fsm_graph.add_edge(_src, _dst)
-                edge = self.fsm_graph.get_edge(_src, _dst)
+                self.fsm_graph.add_edge(_src, _dst)  # type: ignore[union-attr]
+                edge = self.fsm_graph.get_edge(_src, _dst)  # type: ignore[union-attr]
 
         edge.attr.update(edge_attr)
         self.set_node_style(edge.attr.get("ltail") or src, 'previous')
 
 
-def _get_subgraph(graph, name):
+def _get_subgraph(graph: AGraphType, name: str) -> Optional[AGraphType]:
     """Searches for subgraphs in a graph.
     Args:
         g (AGraph): Container to be searched.
@@ -236,7 +245,7 @@ def _get_subgraph(graph, name):
 
 # the official copy method does not close the file handle
 # which causes ResourceWarnings
-def _copy_agraph(graph):
+def _copy_agraph(graph: AGraphType) -> AGraphType:
     from tempfile import TemporaryFile  # pylint: disable=import-outside-toplevel; Only required for special cases
 
     with TemporaryFile() as tmp:

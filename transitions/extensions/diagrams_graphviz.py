@@ -10,6 +10,7 @@ import logging
 from functools import partial
 from collections import defaultdict
 from os.path import splitext
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 try:
     import graphviz as pgv
@@ -17,6 +18,10 @@ except ImportError:
     pgv = None
 
 from .diagrams_base import BaseGraph
+
+if TYPE_CHECKING:
+    from .diagrams import GraphMachine
+    from .diagrams_base import ContextManagerMachine
 
 _LOGGER = logging.getLogger(__name__)
 _LOGGER.addHandler(logging.NullHandler())
@@ -28,35 +33,35 @@ class Graph(BaseGraph):
             custom_styles (dict): A dictionary of styles for the current graph
     """
 
-    def __init__(self, machine):
-        self.custom_styles = {}
+    def __init__(self, machine: Union['GraphMachine', 'ContextManagerMachine']) -> None:
+        self.custom_styles: dict[str, dict[str, Any]] = {}
         self.reset_styling()
         super(Graph, self).__init__(machine)
 
-    def set_previous_transition(self, src, dst):
+    def set_previous_transition(self, src: str, dst: str) -> None:
         self.custom_styles["edge"][src][dst] = "previous"
         self.set_node_style(src, "previous")
 
-    def set_node_style(self, state, style):
+    def set_node_style(self, state: Any, style: str) -> None:
         self.custom_styles["node"][state.name if hasattr(state, "name") else state] = style
 
-    def reset_styling(self):
+    def reset_styling(self) -> None:
         self.custom_styles = {
             "edge": defaultdict(lambda: defaultdict(str)),
             "node": defaultdict(str),
         }
 
-    def _add_nodes(self, states, container):
+    def _add_nodes(self, states: list[dict[str, Any]], container: Any) -> None:
         for state in states:
             style = self.custom_styles["node"][state["name"]]
             container.node(
                 state["name"],
                 label=self._convert_state_attributes(state),
-                **self.machine.style_attributes.get("node", {}).get(style, {})
+                **self.machine.style_attributes.get("node", {}).get(style, {})  # type: ignore[union-attr]
             )
 
-    def _add_edges(self, transitions, container):
-        edge_labels = defaultdict(lambda: defaultdict(list))
+    def _add_edges(self, transitions: list[dict[str, Any]], container: Any) -> None:
+        edge_labels: dict[str, dict[str, list[str]]] = defaultdict(lambda: defaultdict(list))
         for transition in transitions:
             try:
                 dst = transition["dest"]
@@ -70,10 +75,10 @@ class Graph(BaseGraph):
                     src,
                     dst,
                     label=" | ".join(labels),
-                    **self.machine.style_attributes.get("edge", {}).get(style, {})
+                    **self.machine.style_attributes.get("edge", {}).get(style, {})  # type: ignore[union-attr]
                 )
 
-    def generate(self):
+    def generate(self) -> None:
         """Triggers the generation of a graph. With graphviz backend, this does nothing since graph trees need to be
         build from scratch with the configured styles.
         """
@@ -81,16 +86,16 @@ class Graph(BaseGraph):
             raise Exception("AGraph diagram requires graphviz")
         # we cannot really generate a graph in advance with graphviz
 
-    def get_graph(self, title=None, roi_state=None):
-        title = title if title else self.machine.title
+    def get_graph(self, title: Optional[str] = None, roi_state: Optional[Any] = None) -> Any:
+        title = title if title else self.machine.title  # type: ignore[union-attr]
 
         fsm_graph = pgv.Digraph(
             name=title,
-            node_attr=self.machine.style_attributes.get("node", {}).get("default", {}),
-            edge_attr=self.machine.style_attributes.get("edge", {}).get("default", {}),
-            graph_attr=self.machine.style_attributes.get("graph", {}).get("default", {}),
+            node_attr=self.machine.style_attributes.get("node", {}).get("default", {}),  # type: ignore[union-attr]
+            edge_attr=self.machine.style_attributes.get("edge", {}).get("default", {}),  # type: ignore[union-attr]
+            graph_attr=self.machine.style_attributes.get("graph", {}).get("default", {}),  # type: ignore[union-attr]
         )
-        fsm_graph.graph_attr.update(**self.machine.machine_attributes)
+        fsm_graph.graph_attr.update(**self.machine.machine_attributes)  # type: ignore[union-attr]
         fsm_graph.graph_attr["label"] = title
         # For each state, draw a circle
         states, transitions = self._get_elements()
@@ -122,7 +127,7 @@ class Graph(BaseGraph):
         return fsm_graph
 
     # pylint: disable=redefined-builtin,unused-argument
-    def draw(self, graph, filename, format=None, prog="dot", args=""):
+    def draw(self, graph: Any, filename: Any, format: Optional[str] = None, prog: str = "dot", args: str = "") -> Optional[str]:
         """
         Generates and saves an image of the state machine using graphviz. Note that `prog` and `args` are only part
         of the signature to mimic `Agraph.draw` and thus allow to easily switch between graph backends.
@@ -141,7 +146,7 @@ class Graph(BaseGraph):
                 raise ValueError(
                     "Parameter 'format' must not be None when filename is no valid file path."
                 )
-            return graph.pipe(format)
+            return graph.pipe(format)  # type: ignore[no-any-return]
         try:
             filename, ext = splitext(filename)
             format = format if format is not None else ext[1:]
@@ -158,23 +163,23 @@ class Graph(BaseGraph):
 class NestedGraph(Graph):
     """Graph creation support for transitions.extensions.nested.HierarchicalGraphMachine."""
 
-    def __init__(self, *args, **kwargs):
-        self._cluster_states = []
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        self._cluster_states: list[str] = []
         super(NestedGraph, self).__init__(*args, **kwargs)
 
-    def set_node_style(self, state, style):
+    def set_node_style(self, state: Any, style: str) -> None:
         for state_name in self._get_state_names(state):
             super(NestedGraph, self).set_node_style(state_name, style)
 
-    def set_previous_transition(self, src, dst):
-        src_name = self._get_global_name(src.split(self.machine.state_cls.separator))
-        dst_name = self._get_global_name(dst.split(self.machine.state_cls.separator))
+    def set_previous_transition(self, src: str, dst: str) -> None:
+        src_name = self._get_global_name(src.split(self.machine.state_cls.separator))  # type: ignore[union-attr]
+        dst_name = self._get_global_name(dst.split(self.machine.state_cls.separator))  # type: ignore[union-attr]
         super(NestedGraph, self).set_previous_transition(src_name, dst_name)
 
-    def _add_nodes(self, states, container):
+    def _add_nodes(self, states: list[dict[str, Any]], container: Any) -> None:
         self._add_nested_nodes(states, container, prefix="", default_style="default")
 
-    def _add_nested_nodes(self, states, container, prefix, default_style):
+    def _add_nested_nodes(self, states: list[dict[str, Any]], container: Any, prefix: str, default_style: str) -> None:
         for state in states:
             name = prefix + state["name"]
             label = self._convert_state_attributes(state)
@@ -182,7 +187,7 @@ class NestedGraph(Graph):
                 cluster_name = "cluster_" + name
                 attr = {"label": label, "rank": "source"}
                 attr.update(
-                    **self.machine.style_attributes.get("graph", {}).get(
+                    **self.machine.style_attributes.get("graph", {}).get(  # type: ignore[union-attr]
                         self.custom_styles["node"][name] or default_style, {}
                     )
                 )
@@ -203,19 +208,19 @@ class NestedGraph(Graph):
                         state["children"],
                         sub,
                         default_style="parallel" if is_parallel else "default",
-                        prefix=prefix + state["name"] + self.machine.state_cls.separator,
+                        prefix=prefix + state["name"] + self.machine.state_cls.separator,  # type: ignore[union-attr]
                     )
             else:
-                style = self.machine.style_attributes.get("node", {}).get(default_style, {}).copy()
+                style = self.machine.style_attributes.get("node", {}).get(default_style, {}).copy()  # type: ignore[union-attr]
                 style.update(
-                    self.machine.style_attributes.get("node", {}).get(
+                    self.machine.style_attributes.get("node", {}).get(  # type: ignore[union-attr]
                         self.custom_styles["node"][name] or default_style, {}
                     )
                 )
                 container.node(name, label=label, **style)
 
-    def _add_edges(self, transitions, container):
-        edges_attr = defaultdict(lambda: defaultdict(dict))
+    def _add_edges(self, transitions: list[dict[str, Any]], container: Any) -> None:
+        edges_attr: dict[str, dict[str, dict[str, Any]]] = defaultdict(lambda: defaultdict(dict))
 
         for transition in transitions:
             # enable customizable labels
@@ -245,10 +250,10 @@ class NestedGraph(Graph):
             for dst, attr in dests.items():
                 del attr["label_pos"]
                 style = self.custom_styles["edge"][src][dst]
-                attr.update(**self.machine.style_attributes.get("edge", {}).get(style, {}))
+                attr.update(**self.machine.style_attributes.get("edge", {}).get(style, {}))  # type: ignore[union-attr]
                 container.edge(attr.pop("source"), attr.pop("dest"), **attr)
 
-    def _create_edge_attr(self, src, dst, transition):
+    def _create_edge_attr(self, src: str, dst: str, transition: dict[str, Any]) -> dict[str, Any]:
         label_pos = "label"
         attr = {}
         if src in self._cluster_states:
@@ -273,7 +278,7 @@ class NestedGraph(Graph):
         return attr
 
 
-def filter_states(states, state_names, state_cls, prefix=None):
+def filter_states(states: list[dict[str, Any]], state_names: set[str], state_cls: Any, prefix: Optional[list[str]] = None) -> list[dict[str, Any]]:
     prefix = prefix or []
     result = []
     for state in states:

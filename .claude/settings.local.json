@@ -7,7 +7,11 @@
       "Bash(uv pip:*)",
       "Bash(python:*)",
       "Bash(uv run pytest:*)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(find:*)",
+      "Bash(uv run mypy:*)",
+      "Bash(mypy:*)",
+      "Bash(.:*)"
     ]
   }
 }

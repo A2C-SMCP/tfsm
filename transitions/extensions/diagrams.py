@@ -15,10 +15,11 @@
 import logging
 import warnings
 from functools import partial
+from typing import Any, Callable, Optional, Union
 
-from transitions import Transition
+from transitions import Transition  # type: ignore[attr-defined]
 
-from ..core import listify
+from ..core import EventData, listify
 from .markup import MarkupMachine, HierarchicalMarkupMachine
 from .nesting import NestedTransition
 
@@ -32,13 +33,13 @@ class TransitionGraphSupport(Transition):
         conducted.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         label = kwargs.pop("label", None)
         super(TransitionGraphSupport, self).__init__(*args, **kwargs)
         if label:
             self.label = label
 
-    def _change_state(self, event_data):
+    def _change_state(self, event_data: EventData) -> None:
         graph = event_data.machine.model_graphs[id(event_data.model)]
         graph.reset_styling()
         graph.set_previous_transition(self.source, self.dest)
@@ -98,27 +99,29 @@ class GraphMachine(MarkupMachine):
     }
 
     # model_graphs cannot be pickled. Omit them.
-    def __getstate__(self):
+    def __getstate__(self) -> dict[str, Any]:
         # self.pkl_graphs = [(g.markup, g.custom_styles) for g in self.model_graphs]
         return {k: v for k, v in self.__dict__.items() if k not in self._pickle_blacklist}
 
-    def __setstate__(self, state):
+    def __setstate__(self, state: dict[str, Any]) -> None:
         self.__dict__.update(state)
-        self.model_graphs = {}  # reinitialize new model_graphs
+        self.model_graphs: dict[int, Any] = {}  # reinitialize new model_graphs
         for model in self.models:
             try:
                 _ = self._get_graph(model)
             except AttributeError as err:
                 _LOGGER.warning("Graph for model could not be initialized after pickling: %s", err)
 
-    def __init__(self, model=MarkupMachine.self_literal, states=None, initial='initial', transitions=None,
-                 send_event=False, auto_transitions=True,
-                 ordered_transitions=False, ignore_invalid_triggers=None,
-                 before_state_change=None, after_state_change=None, name=None,
-                 queued=False, prepare_event=None, finalize_event=None, model_attribute='state', model_override=False,
-                 on_exception=None, on_final=None, title="State Machine", show_conditions=False,
-                 show_state_attributes=False, show_auto_transitions=False,
-                 use_pygraphviz=True, graph_engine="pygraphviz", **kwargs):
+    def __init__(self, model: Any = MarkupMachine.self_literal, states: Optional[Any] = None, initial: str = 'initial',
+                 transitions: Optional[Any] = None, send_event: bool = False, auto_transitions: bool = True,
+                 ordered_transitions: bool = False, ignore_invalid_triggers: Optional[Any] = None,
+                 before_state_change: Optional[Any] = None, after_state_change: Optional[Any] = None,
+                 name: Optional[Any] = None, queued: bool = False, prepare_event: Optional[Any] = None,
+                 finalize_event: Optional[Any] = None, model_attribute: str = 'state',
+                 model_override: bool = False, on_exception: Optional[Any] = None, on_final: Optional[Any] = None,
+                 title: str = "State Machine", show_conditions: bool = False,
+                 show_state_attributes: bool = False, show_auto_transitions: bool = False,
+                 use_pygraphviz: bool = True, graph_engine: str = "pygraphviz", **kwargs: Any) -> None:
         # remove graph config from keywords
         self.title = title
         self.show_conditions = show_conditions
@@ -126,7 +129,7 @@ class GraphMachine(MarkupMachine):
         # in MarkupMachine this switch is called 'with_auto_transitions'
         # keep 'auto_transitions_markup' for backwards compatibility
         kwargs["auto_transitions_markup"] = show_auto_transitions
-        self.model_graphs = {}
+        self.model_graphs: dict[int, Any] = {}  # type: ignore[no-redef]
         if use_pygraphviz is False:
             warnings.warn("Please replace 'use_pygraphviz=True' with graph_engine='graphviz'.",
                           category=DeprecationWarning)
@@ -149,26 +152,30 @@ class GraphMachine(MarkupMachine):
         if not hasattr(self, "get_graph"):
             setattr(self, "get_graph", self.get_combined_graph)
 
-    def _init_graphviz_engine(self, graph_engine):
+    def _init_graphviz_engine(self, graph_engine: str) -> type[Any]:
         """Imports diagrams (py)graphviz backend based on machine configuration"""
         is_hsm = issubclass(self.transition_cls, NestedTransition)
         if graph_engine == "pygraphviz":
-            from .diagrams_pygraphviz import Graph, NestedGraph, pgv  # pylint: disable=import-outside-toplevel
+            from .diagrams_pygraphviz import (  # type: ignore[attr-defined]  # pylint: disable=import-outside-toplevel
+                Graph as PyGraphvizGraph, NestedGraph as PyGraphvizNestedGraph, pgv
+            )
             if pgv:
-                return NestedGraph if is_hsm else Graph
+                return PyGraphvizNestedGraph if is_hsm else PyGraphvizGraph
             _LOGGER.warning("Could not import pygraphviz backend. Will try graphviz backend next.")
             graph_engine = "graphviz"
 
         if graph_engine == "graphviz":
-            from .diagrams_graphviz import Graph, NestedGraph, pgv  # pylint: disable=import-outside-toplevel
+            from .diagrams_graphviz import (  # type: ignore[attr-defined]  # pylint: disable=import-outside-toplevel
+                Graph as GraphvizGraph, NestedGraph as GraphvizNestedGraph, pgv
+            )
             if pgv:
-                return NestedGraph if is_hsm else Graph
+                return GraphvizNestedGraph if is_hsm else GraphvizGraph
             _LOGGER.warning("Could not import graphviz backend. Fallback to mermaid graphs")
 
-        from .diagrams_mermaid import NestedGraph, Graph  # pylint: disable=import-outside-toplevel
-        return NestedGraph if is_hsm else Graph
+        from .diagrams_mermaid import NestedGraph as MermaidNestedGraph, Graph as MermaidGraph  # pylint: disable=import-outside-toplevel
+        return MermaidNestedGraph if is_hsm else MermaidGraph
 
-    def _get_graph(self, model, title=None, force_new=False, show_roi=False):
+    def _get_graph(self, model: Any, title: Optional[str] = None, force_new: bool = False, show_roi: bool = False) -> Any:
         """This method will be bound as a partial to models and return a graph object to be drawn or manipulated.
         Args:
             model (object): The model that `_get_graph` was bound to. This parameter will be set by `GraphMachine`.
@@ -193,7 +200,7 @@ class GraphMachine(MarkupMachine):
             graph = self.model_graphs[id(model)]
         return graph.get_graph(title=title, roi_state=getattr(model, self.model_attribute) if show_roi else None)
 
-    def get_combined_graph(self, title=None, force_new=False, show_roi=False):
+    def get_combined_graph(self, title: Optional[str] = None, force_new: bool = False, show_roi: bool = False) -> Any:
         """This method is currently equivalent to 'get_graph' of the first machine's model.
         In future releases of transitions, this function will return a combined graph with active states
         of all models.
@@ -211,7 +218,11 @@ class GraphMachine(MarkupMachine):
         )
         return self._get_graph(self.models[0], title, force_new, show_roi)
 
-    def add_model(self, model, initial=None):
+    def add_model(self, model: Any, initial: Optional[Any] = None) -> None:  # type: ignore[override]
+        """Register a model with the state machine and initialize its graph.
+
+        This override adds graph initialization to the parent class behavior.
+        """
         models = listify(model)
         super(GraphMachine, self).add_model(models, initial)
         for mod in models:
@@ -224,8 +235,9 @@ class GraphMachine(MarkupMachine):
             _ = mod.get_graph(title=self.title, force_new=True)  # initialises graph
 
     def add_states(
-        self, states, on_enter=None, on_exit=None, ignore_invalid_triggers=None, **kwargs
-    ):
+        self, states: Any, on_enter: Optional[Any] = None, on_exit: Optional[Any] = None,
+        ignore_invalid_triggers: Optional[Any] = None, **kwargs: Any
+    ) -> None:
         """Calls the base method and regenerates all models' graphs."""
         super(GraphMachine, self).add_states(
             states,
@@ -237,15 +249,16 @@ class GraphMachine(MarkupMachine):
         for model in self.models:
             model.get_graph(force_new=True)
 
-    def add_transition(self, trigger, source, dest, conditions=None, unless=None, before=None, after=None,
-                       prepare=None, **kwargs):
+    def add_transition(self, trigger: Any, source: Any, dest: Any, conditions: Optional[Any] = None,
+                       unless: Optional[Any] = None, before: Optional[Any] = None, after: Optional[Any] = None,
+                       prepare: Optional[Any] = None, **kwargs: Any) -> None:
         """Calls the base method and regenerates all models's graphs."""
         super(GraphMachine, self).add_transition(trigger, source, dest, conditions=conditions, unless=unless,
                                                  before=before, after=after, prepare=prepare, **kwargs)
         for model in self.models:
             model.get_graph(force_new=True)
 
-    def remove_transition(self, trigger, source="*", dest="*"):
+    def remove_transition(self, trigger: Any, source: Any = "*", dest: Any = "*") -> None:
         super(GraphMachine, self).remove_transition(trigger, source, dest)
         # update all model graphs since some transitions might be gone
         for model in self.models:

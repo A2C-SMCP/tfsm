@@ -1,4 +1,5 @@
 from collections import deque, defaultdict
+from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
 
 from transitions.core import Machine, listify
 from transitions.extensions.markup import HierarchicalMarkupMachine, MarkupMachine
@@ -7,7 +8,7 @@ from transitions.extensions.markup import HierarchicalMarkupMachine, MarkupMachi
 _placeholder_body = "raise RuntimeError('This should be overridden')"
 
 
-def generate_base_model(config):
+def generate_base_model(config: Union[Dict[str, Any], Machine]) -> str:
     """Generates a base model class definition from a given machine configuration or an instance of a MarkupMachine.
 
     Note that (Hierachical/Locked/Async)GraphMachine also feature markup.
@@ -106,10 +107,10 @@ class BaseModel(metaclass=ABCMeta):
     return template
 
 
-def with_model_definitions(cls):
+def with_model_definitions(cls: Type[Machine]) -> Type[Machine]:
     add_model = getattr(cls, "add_model")
 
-    def add_model_override(self, model, initial=None):
+    def add_model_override(self: Machine, model: Any, initial: Optional[str] = None) -> None:
         self.model_override = True
         for model in listify(model):
             model = self if model == "self" else model
@@ -128,35 +129,43 @@ def with_model_definitions(cls):
 
 
 class TriggerPlaceholder:
-    definitions = defaultdict(lambda: defaultdict(list))
+    definitions: Dict[Type[Any], Dict[str, List[Any]]] = defaultdict(lambda: defaultdict(list))
 
-    def __init__(self, configs):
-        self.configs = deque(configs)
+    def __init__(self, configs: List[Any]) -> None:
+        self.configs: deque[Any] = deque(configs)
 
-    def __set_name__(self, owner, name):
+    def __set_name__(self, owner: Type[Any], name: str) -> None:
         for config in self.configs:
             TriggerPlaceholder.definitions[owner][name].append(config)
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args: Any, **kwargs: Any) -> None:
         raise RuntimeError("Trigger was not initialized correctly!")
 
 
-def event(*configs):
-    return TriggerPlaceholder(configs)
+def event(*configs: Any) -> TriggerPlaceholder:
+    return TriggerPlaceholder(list(configs))
 
 
-def add_transitions(*configs):
-    def _outer(trigger_func):
+def add_transitions(*configs: Any) -> Callable[[Any], TriggerPlaceholder]:
+    def _outer(trigger_func: Union[TriggerPlaceholder, Any]) -> TriggerPlaceholder:
         if isinstance(trigger_func, TriggerPlaceholder):
             for config in reversed(configs):
                 trigger_func.configs.appendleft(config)
+            return trigger_func
         else:
-            trigger_func = TriggerPlaceholder(configs)
-        return trigger_func
+            return TriggerPlaceholder(list(configs))
 
     return _outer
 
 
-def transition(source, dest=None, conditions=None, unless=None, before=None, after=None, prepare=None):
+def transition(
+    source: Any,
+    dest: Optional[str] = None,
+    conditions: Optional[Any] = None,
+    unless: Optional[Any] = None,
+    before: Optional[Any] = None,
+    after: Optional[Any] = None,
+    prepare: Optional[Any] = None
+) -> Dict[str, Any]:
     return {"source": source, "dest": dest, "conditions": conditions, "unless": unless, "before": before,
             "after": after, "prepare": prepare}

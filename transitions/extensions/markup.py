@@ -12,6 +12,7 @@ from enum import Enum, EnumMeta
 import importlib
 import itertools
 import numbers
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 from ..core import Machine
 from .nesting import HierarchicalMachine
@@ -27,13 +28,15 @@ class MarkupMachine(Machine):
                         'final']
     transition_attributes = ['source', 'dest', 'prepare', 'before', 'after', 'label']
 
-    def __init__(self, model=Machine.self_literal, states=None, initial='initial', transitions=None,
-                 send_event=False, auto_transitions=True,
-                 ordered_transitions=False, ignore_invalid_triggers=None,
-                 before_state_change=None, after_state_change=None, name=None,
-                 queued=False, prepare_event=None, finalize_event=None, model_attribute='state',
-                 model_override=False, on_exception=None, on_final=None, markup=None, auto_transitions_markup=False,
-                 **kwargs):
+    def __init__(self, model: Any = Machine.self_literal, states: Optional[Any] = None, initial: str = 'initial',
+                 transitions: Optional[Any] = None, send_event: bool = False, auto_transitions: bool = True,
+                 ordered_transitions: Union[bool, str, List[str]] = False,
+                 ignore_invalid_triggers: Optional[bool] = None, before_state_change: Optional[Any] = None,
+                 after_state_change: Optional[Any] = None, name: Optional[str] = None, queued: bool = False,
+                 prepare_event: Optional[Any] = None, finalize_event: Optional[Any] = None,
+                 model_attribute: str = 'state', model_override: bool = False, on_exception: Optional[Any] = None,
+                 on_final: Optional[Any] = None, markup: Optional[Dict[str, Any]] = None,
+                 auto_transitions_markup: bool = False, **kwargs: Any) -> None:
         self._markup = markup or {}
         self._auto_transitions_markup = auto_transitions_markup
         self._needs_update = True
@@ -48,7 +51,8 @@ class MarkupMachine(Machine):
             super(MarkupMachine, self).__init__(
                 model=model, states=states, initial=initial, transitions=transitions,
                 send_event=send_event, auto_transitions=auto_transitions,
-                ordered_transitions=ordered_transitions, ignore_invalid_triggers=ignore_invalid_triggers,
+                ordered_transitions=ordered_transitions,  # type: ignore[arg-type]
+                ignore_invalid_triggers=ignore_invalid_triggers,
                 before_state_change=before_state_change, after_state_change=after_state_change, name=name,
                 queued=queued, prepare_event=prepare_event, finalize_event=finalize_event,
                 model_attribute=model_attribute, model_override=model_override,
@@ -68,18 +72,18 @@ class MarkupMachine(Machine):
             self._markup['queued'] = self.has_queue
 
     @property
-    def auto_transitions_markup(self):
+    def auto_transitions_markup(self) -> bool:
         """Whether auto transitions should be included in the markup."""
         return self._auto_transitions_markup
 
     @auto_transitions_markup.setter
-    def auto_transitions_markup(self, value):
+    def auto_transitions_markup(self, value: bool) -> None:
         """Whether auto transitions should be included in the markup."""
         self._auto_transitions_markup = value
         self._needs_update = True
 
     @property
-    def markup(self):
+    def markup(self) -> Dict[str, Any]:
         """Returns the machine's configuration as a markup dictionary.
         Returns:
             dict of machine configuration parameters.
@@ -89,7 +93,7 @@ class MarkupMachine(Machine):
 
     # the only reason why this not part of markup property is that pickle
     # has issues with properties during __setattr__ (self.markup is not set)
-    def get_markup_config(self):
+    def get_markup_config(self) -> Dict[str, Any]:
         """Generates and returns all machine markup parameters except models.
         Returns:
             dict of machine configuration parameters.
@@ -99,29 +103,31 @@ class MarkupMachine(Machine):
             self._needs_update = False
         return self._markup
 
-    def add_transition(self, trigger, source, dest, conditions=None,
-                       unless=None, before=None, after=None, prepare=None, **kwargs):
+    def add_transition(self, trigger: Any, source: Any, dest: Any, conditions: Optional[Any] = None,
+                       unless: Optional[Any] = None, before: Optional[Any] = None, after: Optional[Any] = None,
+                       prepare: Optional[Any] = None, **kwargs: Any) -> None:
         super(MarkupMachine, self).add_transition(trigger, source, dest, conditions=conditions, unless=unless,
                                                   before=before, after=after, prepare=prepare, **kwargs)
         self._needs_update = True
 
-    def remove_transition(self, trigger, source="*", dest="*"):
+    def remove_transition(self, trigger: Any, source: Any = "*", dest: Any = "*") -> None:
         super(MarkupMachine, self).remove_transition(trigger, source, dest)
         self._needs_update = True
 
-    def add_states(self, states, on_enter=None, on_exit=None, ignore_invalid_triggers=None, **kwargs):
+    def add_states(self, states: Any, on_enter: Optional[Any] = None, on_exit: Optional[Any] = None,
+                   ignore_invalid_triggers: Optional[Any] = None, **kwargs: Any) -> None:
         super(MarkupMachine, self).add_states(states, on_enter=on_enter, on_exit=on_exit,
                                               ignore_invalid_triggers=ignore_invalid_triggers, **kwargs)
         self._needs_update = True
 
     @staticmethod
-    def format_references(func):
+    def format_references(func: Any) -> str:
         """Creates a string representation of referenced callbacks.
         Returns:
             str that represents a callback reference.
         """
         try:
-            return func.__name__
+            return func.__name__  # type: ignore[no-any-return]
         except AttributeError:
             pass
         if isinstance(func, partial):
@@ -133,7 +139,7 @@ class MarkupMachine(Machine):
                      for key, value in (func.keywords if func.keywords else {}).items()))))
         return str(func)
 
-    def _convert_states_and_transitions(self, root):
+    def _convert_states_and_transitions(self, root: Dict[str, Any]) -> None:
         state = getattr(self, 'scoped', self)
         if state.initial:
             root['initial'] = state.initial
@@ -142,7 +148,7 @@ class MarkupMachine(Machine):
         self._convert_transitions(root)
         self._convert_states(root)
 
-    def _convert_states(self, root):
+    def _convert_states(self, root: Dict[str, Any]) -> None:
         key = 'states' if getattr(self, 'scoped', self) == self else 'children'
         root[key] = []
         for state_name, state in self.states.items():
@@ -152,11 +158,11 @@ class MarkupMachine(Machine):
             else:
                 s_def['name'] = state_name
             if getattr(state, 'states', []):
-                with self(state_name):
+                with self(state_name):  # type: ignore[operator]
                     self._convert_states_and_transitions(s_def)
             root[key].append(s_def)
 
-    def _convert_transitions(self, root):
+    def _convert_transitions(self, root: Dict[str, Any]) -> None:
         root['transitions'] = []
         for event in self.events.values():
             if self._omit_auto_transitions(event):
@@ -176,7 +182,7 @@ class MarkupMachine(Machine):
                         t_def['unless'] = unl
                     root['transitions'].append(t_def)
 
-    def _add_markup_model(self, markup):
+    def _add_markup_model(self, markup: Dict[str, Any]) -> None:
         initial = markup.get('state', None)
         if markup['class-name'] == 'self':
             self.add_model(self, initial)
@@ -185,7 +191,7 @@ class MarkupMachine(Machine):
             cls = getattr(importlib.import_module(mod_name), cls_name)
             self.add_model(cls(), initial)
 
-    def _convert_models(self):
+    def _convert_models(self) -> List[Dict[str, Any]]:
         models = []
         for model in self.models:
             state = getattr(model, self.model_attribute)
@@ -195,12 +201,12 @@ class MarkupMachine(Machine):
             models.append(model_def)
         return models
 
-    def _omit_auto_transitions(self, event):
+    def _omit_auto_transitions(self, event: Any) -> bool:
         return self.auto_transitions_markup is False and self._is_auto_transition(event)
 
     # auto transition events commonly a) start with the 'to_' prefix, followed by b) the state name
     # and c) contain a transition from each state to the target state (including the target)
-    def _is_auto_transition(self, event):
+    def _is_auto_transition(self, event: Any) -> bool:
         if event.name.startswith('to_') and len(event.transitions) == len(self.states):
             state_name = event.name[len('to_'):]
             try:
@@ -210,7 +216,7 @@ class MarkupMachine(Machine):
                 pass
         return False
 
-    def _identify_callback(self, name):
+    def _identify_callback(self, name: str) -> Tuple[Optional[Any], Optional[Any]]:
         callback_type, target = super(MarkupMachine, self)._identify_callback(name)
         if callback_type:
             self._needs_update = True
@@ -221,7 +227,7 @@ class HierarchicalMarkupMachine(MarkupMachine, HierarchicalMachine):
     """Extends transitions.extensions.nesting.HierarchicalMachine with markup capabilities."""
 
 
-def rep(func, format_references=None):
+def rep(func: Any, format_references: Optional[Callable[[Any], str]] = None) -> Optional[str]:
     """Return a string representation for `func`."""
     if isinstance(func, str):
         return func
@@ -230,8 +236,8 @@ def rep(func, format_references=None):
     return format_references(func) if format_references is not None else None
 
 
-def _convert(obj, attributes, format_references):
-    definition = {}
+def _convert(obj: Any, attributes: List[str], format_references: Callable[[Any], str]) -> Dict[str, Any]:
+    definition: Dict[str, Any] = {}
     for key in attributes:
         val = getattr(obj, key, False)
         if not val:

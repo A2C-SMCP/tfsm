@@ -14,18 +14,20 @@
 # and thus increase code complexity and reduce maintainability. If you know a better solution, please file an issue.
 # pylint: disable=invalid-overridden-method
 
-import logging
 import asyncio
 import contextvars
 import inspect
+import logging
 import sys
 import warnings
 from collections import deque
 from functools import partial, reduce
+from typing import Any, Optional, Union, Awaitable, Callable, Dict, List, Tuple
 import copy
 
 from ..core import State, Condition, Transition, EventData, listify
 from ..core import Event, MachineError, Machine
+from ..core import StateName, Callback, CallbackList
 from .nesting import HierarchicalMachine, NestedState, NestedEvent, NestedTransition, resolve_order
 
 
@@ -40,34 +42,34 @@ CANCELLED_MSG = "_transition"
 class AsyncState(State):
     """A persistent representation of a state managed by a ``Machine``. Callback execution is done asynchronously."""
 
-    async def enter(self, event_data):
+    async def enter(self, event_data: 'AsyncEventData') -> None:  # type: ignore[override]
         """Triggered when a state is entered.
         Args:
             event_data: (AsyncEventData): The currently processed event.
         """
         _LOGGER.debug("%sEntering state %s. Processing callbacks...", event_data.machine.name, self.name)
-        await event_data.machine.callbacks(self.on_enter, event_data)
+        await event_data.machine.callbacks(self.on_enter, event_data)  # type: ignore[func-returns-value]
         _LOGGER.info("%sFinished processing state %s enter callbacks.", event_data.machine.name, self.name)
 
-    async def exit(self, event_data):
+    async def exit(self, event_data: 'AsyncEventData') -> None:  # type: ignore[override]
         """Triggered when a state is exited.
         Args:
             event_data: (AsyncEventData): The currently processed event.
         """
         _LOGGER.debug("%sExiting state %s. Processing callbacks...", event_data.machine.name, self.name)
-        await event_data.machine.callbacks(self.on_exit, event_data)
+        await event_data.machine.callbacks(self.on_exit, event_data)  # type: ignore[func-returns-value]
         _LOGGER.info("%sFinished processing state %s exit callbacks.", event_data.machine.name, self.name)
 
 
 class NestedAsyncState(NestedState, AsyncState):
     """A state that allows substates. Callback execution is done asynchronously."""
 
-    async def scoped_enter(self, event_data, scope=None):
+    async def scoped_enter(self, event_data: 'AsyncEventData', scope: Optional[List[str]] = None) -> None:  # type: ignore[override]
         self._scope = scope or []
         await self.enter(event_data)
         self._scope = []
 
-    async def scoped_exit(self, event_data, scope=None):
+    async def scoped_exit(self, event_data: 'AsyncEventData', scope: Optional[List[str]] = None) -> None:  # type: ignore[override]
         self._scope = scope or []
         await self.exit(event_data)
         self._scope = []
@@ -76,7 +78,7 @@ class NestedAsyncState(NestedState, AsyncState):
 class AsyncCondition(Condition):
     """A helper class to await condition checks in the intended way."""
 
-    async def check(self, event_data):
+    async def check(self, event_data: EventData) -> bool:  # type: ignore[override]
         """Check whether the condition passes.
         Args:
             event_data (EventData): An EventData instance to pass to the
@@ -88,7 +90,8 @@ class AsyncCondition(Condition):
         func = event_data.machine.resolve_callable(self.func, event_data)
         res = func(event_data) if event_data.machine.send_event else func(*event_data.args, **event_data.kwargs)
         if inspect.isawaitable(res):
-            return await res == self.target
+            result = await res
+            return result == self.target
         return res == self.target
 
 
@@ -97,14 +100,14 @@ class AsyncTransition(Transition):
 
     condition_cls = AsyncCondition
 
-    async def _eval_conditions(self, event_data):
+    async def _eval_conditions(self, event_data: EventData) -> bool:  # type: ignore[override]
         res = await event_data.machine.await_all([partial(cond.check, event_data) for cond in self.conditions])
         if not all(res):
             _LOGGER.debug("%sTransition condition failed: Transition halted.", event_data.machine.name)
             return False
         return True
 
-    async def execute(self, event_data):
+    async def execute(self, event_data: EventData) -> bool:  # type: ignore[override]
         """Executes the transition.
         Args:
             event_data (EventData): An instance of class EventData.
@@ -136,7 +139,7 @@ class AsyncTransition(Transition):
         _LOGGER.debug("%sExecuted callback after transition.", event_data.machine.name)
         return True
 
-    async def _change_state(self, event_data):
+    async def _change_state(self, event_data: EventData) -> None:  # type: ignore[override]
         if hasattr(event_data.machine, "model_graphs"):
             graph = event_data.machine.model_graphs[id(event_data.model)]
             graph.reset_styling()
@@ -152,7 +155,7 @@ class AsyncTransition(Transition):
 
 class NestedAsyncTransition(AsyncTransition, NestedTransition):
     """Representation of an asynchronous transition managed by a ``HierarchicalMachine`` instance."""
-    async def _change_state(self, event_data):
+    async def _change_state(self, event_data: EventData) -> None:  # type: ignore[override]
         if hasattr(event_data.machine, "model_graphs"):
             graph = event_data.machine.model_graphs[id(event_data.model)]
             graph.reset_styling()
@@ -176,7 +179,7 @@ class AsyncEventData(EventData):
 class AsyncEvent(Event):
     """A collection of transitions assigned to the same trigger"""
 
-    async def trigger(self, model, *args, **kwargs):
+    async def trigger(self, model: Any, *args: Any, **kwargs: Any) -> bool:  # type: ignore[override]
         """Serially execute all transitions that match the current state,
         halting as soon as one successfully completes. Note that `AsyncEvent` triggers must be awaited.
         Args:
@@ -189,7 +192,7 @@ class AsyncEvent(Event):
         func = partial(self._trigger, EventData(None, self, self.machine, model, args=args, kwargs=kwargs))
         return await self.machine.process_context(func, model)
 
-    async def _trigger(self, event_data):
+    async def _trigger(self, event_data: EventData) -> bool:  # type: ignore[override]
         event_data.state = self.machine.get_state(getattr(event_data.model, self.machine.model_attribute))
         try:
             if self._is_valid_source(event_data.state):
@@ -213,12 +216,12 @@ class AsyncEvent(Event):
                               str(err))
         return event_data.result
 
-    async def _process(self, event_data):
+    async def _process(self, event_data: EventData) -> None:  # type: ignore[override]
         await self.machine.callbacks(self.machine.prepare_event, event_data)
         _LOGGER.debug("%sExecuted machine preparation callbacks before conditions.", self.machine.name)
         for trans in self.transitions[event_data.state.name]:
             event_data.transition = trans
-            event_data.result = await trans.execute(event_data)
+            event_data.result = await trans.execute(event_data)  # type: ignore[misc]
             if event_data.result:
                 break
 
@@ -228,7 +231,7 @@ class NestedAsyncEvent(NestedEvent):
     This Event requires a (subclass of) `HierarchicalAsyncMachine`.
     """
 
-    async def trigger_nested(self, event_data):
+    async def trigger_nested(self, event_data: EventData) -> bool:  # type: ignore[override]
         """Serially execute all transitions that match the current state,
         halting as soon as one successfully completes. NOTE: This should only
         be called by HierarchicalMachine instances.
@@ -258,14 +261,14 @@ class NestedAsyncEvent(NestedEvent):
                         elems.pop()
         return event_data.result
 
-    async def _process(self, event_data):
+    async def _process(self, event_data: EventData) -> None:  # type: ignore[override]
         machine = event_data.machine
         await machine.callbacks(event_data.machine.prepare_event, event_data)
         _LOGGER.debug("%sExecuted machine preparation callbacks before conditions.", machine.name)
 
         for trans in self.transitions[event_data.source_name]:
             event_data.transition = trans
-            event_data.result = await trans.execute(event_data)
+            event_data.result = await trans.execute(event_data)  # type: ignore[misc]
             if event_data.result:
                 break
 
@@ -304,16 +307,20 @@ class AsyncMachine(Machine):
     state_cls = AsyncState
     transition_cls = AsyncTransition
     event_cls = AsyncEvent
-    async_tasks = {}
-    protected_tasks = []
-    current_context = contextvars.ContextVar('current_context', default=None)
+    async_tasks: Dict[int, List['asyncio.Task[Any]']] = {}
+    protected_tasks: List['asyncio.Task[Any]'] = []
+    current_context: contextvars.ContextVar[Optional['asyncio.Task[Any]']] = contextvars.ContextVar('current_context', default=None)
 
-    def __init__(self, model=Machine.self_literal, states=None, initial='initial', transitions=None,
-                 send_event=False, auto_transitions=True,
-                 ordered_transitions=False, ignore_invalid_triggers=None,
-                 before_state_change=None, after_state_change=None, name=None,
-                 queued=False, prepare_event=None, finalize_event=None, model_attribute='state',
-                 model_override=False, on_exception=None, on_final=None, **kwargs):
+    def __init__(self, model: Any = Machine.self_literal, states: Optional[List[Any]] = None,
+                 initial: str = 'initial', transitions: Optional[List[Any]] = None,
+                 send_event: bool = False, auto_transitions: bool = True,
+                 ordered_transitions: bool = False, ignore_invalid_triggers: Optional[bool] = None,
+                 before_state_change: Optional[Callback] = None, after_state_change: Optional[Callback] = None,
+                 name: Optional[str] = None,
+                 queued: Union[bool, str] = False, prepare_event: Optional[Callback] = None,
+                 finalize_event: Optional[Callback] = None, model_attribute: str = 'state',
+                 model_override: bool = False, on_exception: Optional[Callback] = None,
+                 on_final: Optional[Callback] = None, **kwargs: Any) -> None:
 
         super().__init__(model=None, states=states, initial=initial, transitions=transitions,
                          send_event=send_event, auto_transitions=auto_transitions,
@@ -323,18 +330,18 @@ class AsyncMachine(Machine):
                          model_attribute=model_attribute, model_override=model_override,
                          on_exception=on_exception, on_final=on_final, **kwargs)
 
-        self._transition_queue_dict = _DictionaryMock(self._transition_queue) if queued is True else {}
-        self._queued = queued
+        self._transition_queue_dict: Dict[int, 'deque[partial[Any]]'] = _DictionaryMock(self._transition_queue) if queued is True else {}
+        self._queued: Union[bool, str] = queued
         for model in listify(model):
             self.add_model(model)
 
-    def add_model(self, model, initial=None):
+    def add_model(self, model: Any, initial: Optional[str] = None) -> None:
         super().add_model(model, initial)
-        if self.has_queue == 'model':
+        if self.has_queue == 'model':  # type: ignore[comparison-overlap]
             for mod in listify(model):
                 self._transition_queue_dict[id(self) if mod is self.self_literal else id(mod)] = deque()
 
-    async def dispatch(self, trigger, *args, **kwargs):
+    async def dispatch(self, trigger: str, *args: Any, **kwargs: Any) -> bool:
         """Trigger an event on all models assigned to the machine.
         Args:
             trigger (str): Event name
@@ -346,11 +353,11 @@ class AsyncMachine(Machine):
         results = await self.await_all([partial(getattr(model, trigger), *args, **kwargs) for model in self.models])
         return all(results)
 
-    async def callbacks(self, funcs, event_data):
+    async def callbacks(self, funcs: CallbackList, event_data: EventData) -> None:
         """Triggers a list of callbacks"""
         await self.await_all([partial(event_data.machine.callback, func, event_data) for func in funcs])
 
-    async def callback(self, func, event_data):
+    async def callback(self, func: Callback, event_data: EventData) -> None:
         """Trigger a callback function with passed event_data parameters. In case func is a string,
             the callable will be resolved from the passed model in event_data. This function is not intended to
             be called directly but through state and transition callback definitions.
@@ -369,7 +376,7 @@ class AsyncMachine(Machine):
             await res
 
     @staticmethod
-    async def await_all(callables):
+    async def await_all(callables: List[Callable[[], Any]]) -> List[Any]:
         """
         Executes callables without parameters in parallel and collects their results.
         Args:
@@ -380,12 +387,12 @@ class AsyncMachine(Machine):
         """
         return await asyncio.gather(*[func() for func in callables])
 
-    async def switch_model_context(self, model):
+    async def switch_model_context(self, model: Any) -> None:
         warnings.warn("Please replace 'AsyncMachine.switch_model_context' with "
                       "'AsyncMachine.cancel_running_transitions'.", category=DeprecationWarning)
         await self.cancel_running_transitions(model)
 
-    async def cancel_running_transitions(self, model, msg=None):
+    async def cancel_running_transitions(self, model: Any, msg: Optional[str] = None) -> None:
         """
         This method is called by an `AsyncTransition` when all conditional tests have passed
         and the transition will happen. This requires already running tasks to be cancelled.
@@ -406,7 +413,7 @@ class AsyncMachine(Machine):
                 _LOGGER.debug("Cancel running tasks...")
                 running_task.cancel(msg or CANCELLED_MSG)
 
-    async def process_context(self, func, model):
+    async def process_context(self, func: partial[Any], model: Any) -> bool:
         """
         This function is called by an `AsyncEvent` to make callbacks processed in Event._trigger cancellable.
         Using asyncio this will result in a try-catch block catching CancelledEvents.
@@ -441,12 +448,12 @@ class AsyncMachine(Machine):
             res = await self._process_async(func, model)
         return res
 
-    def remove_model(self, model):
+    def remove_model(self, model: Any) -> None:
         """Remove a model from the state machine. The model will still contain all previously added triggers
         and callbacks, but will not receive updates when states or transitions are added to the Machine.
         If an event queue is used, all queued events of that model will be removed."""
         models = listify(model)
-        if self.has_queue == 'model':
+        if self.has_queue == 'model':  # type: ignore[comparison-overlap]
             for mod in models:
                 del self._transition_queue_dict[id(mod)]
                 self.models.remove(mod)
@@ -459,7 +466,7 @@ class AsyncMachine(Machine):
             self._transition_queue.clear()
             self._transition_queue.extend(new_queue)
 
-    async def _can_trigger(self, model, trigger, *args, **kwargs):
+    async def _can_trigger(self, model: Any, trigger: str, *args: Any, **kwargs: Any) -> bool:
         state = self.get_model_state(model)
         event_data = AsyncEventData(state, AsyncEvent(name=trigger, machine=self), self, model, args, kwargs)
 
@@ -477,18 +484,18 @@ class AsyncMachine(Machine):
                     await self.callbacks(transition.prepare, event_data)
                     if all(await self.await_all([partial(c.check, event_data) for c in transition.conditions])):
                         return True
-                except BaseException as err:
-                    event_data.error = err
+                except BaseException as err:  # pylint: disable=broad-except
+                    event_data.error = err  # type: ignore[assignment]
                     if self.on_exception:
                         await self.callbacks(self.on_exception, event_data)
                     else:
                         raise
         return False
 
-    def _process(self, trigger):
+    def _process(self, trigger: Any) -> None:
         raise RuntimeError("AsyncMachine should not call `Machine._process`. Use `Machine._process_async` instead.")
 
-    async def _process_async(self, trigger, model):
+    async def _process_async(self, trigger: partial[Any], model: Any) -> bool:
         # default processing
         if not self.has_queue:
             if not self._transition_queue:
@@ -523,9 +530,9 @@ class HierarchicalAsyncMachine(HierarchicalMachine, AsyncMachine):
 
     state_cls = NestedAsyncState
     transition_cls = NestedAsyncTransition
-    event_cls = NestedAsyncEvent
+    event_cls = NestedAsyncEvent  # type: ignore[assignment]
 
-    async def trigger_event(self, model, trigger, *args, **kwargs):
+    async def trigger_event(self, model: Any, trigger: str, *args: Any, **kwargs: Any) -> bool:
         """Processes events recursively and forwards arguments if suitable events are found.
         This function is usually bound to models with model and trigger arguments already
         resolved as a partial. Execution will halt when a nested transition has been executed
@@ -542,12 +549,12 @@ class HierarchicalAsyncMachine(HierarchicalMachine, AsyncMachine):
                           is not True. Note that a transition which is not executed due to conditions
                           is still considered valid.
         """
-        event_data = AsyncEventData(state=None, event=None, machine=self, model=model, args=args, kwargs=kwargs)
-        event_data.result = None
+        event_data = AsyncEventData(state=None, event=None, machine=self, model=model, args=args, kwargs=kwargs)  # type: ignore[arg-type]
+        event_data.result = None  # type: ignore[assignment]
 
         return await self.process_context(partial(self._trigger_event, event_data, trigger), model)
 
-    async def _trigger_event(self, event_data, trigger):
+    async def _trigger_event(self, event_data: AsyncEventData, trigger: str) -> bool:
         try:
             with self():
                 res = await self._trigger_event_nested(event_data, trigger, None)
@@ -569,12 +576,12 @@ class HierarchicalAsyncMachine(HierarchicalMachine, AsyncMachine):
                               str(err))
         return event_data.result
 
-    async def _trigger_event_nested(self, event_data, _trigger, _state_tree):
+    async def _trigger_event_nested(self, event_data: AsyncEventData, _trigger: str, _state_tree: Optional[Dict[str, Any]]) -> Optional[bool]:
         model = event_data.model
         if _state_tree is None:
-            _state_tree = self.build_state_tree(listify(getattr(model, self.model_attribute)),
+            _state_tree = self.build_state_tree(listify(getattr(model, self.model_attribute)),  # type: ignore[arg-type]
                                                 self.state_cls.separator)
-        res = {}
+        res: Dict[str, Optional[bool]] = {}
         for key, value in _state_tree.items():
             if value:
                 with self(key):
@@ -587,14 +594,14 @@ class HierarchicalAsyncMachine(HierarchicalMachine, AsyncMachine):
                     res[key] = tmp
         return None if not res or all(v is None for v in res.values()) else any(res.values())
 
-    async def _can_trigger(self, model, trigger, *args, **kwargs):
+    async def _can_trigger(self, model: Any, trigger: str, *args: Any, **kwargs: Any) -> bool:
         state_tree = self.build_state_tree(getattr(model, self.model_attribute), self.state_cls.separator)
         ordered_states = resolve_order(state_tree)
         for state_path in ordered_states:
             with self():
                 return await self._can_trigger_nested(model, trigger, state_path, *args, **kwargs)
 
-    async def _can_trigger_nested(self, model, trigger, path, *args, **kwargs):
+    async def _can_trigger_nested(self, model: Any, trigger: str, path: List[str], *args: Any, **kwargs: Any) -> bool:
         if trigger in self.events:
             source_path = copy.copy(path)
             while source_path:
@@ -612,8 +619,8 @@ class HierarchicalAsyncMachine(HierarchicalMachine, AsyncMachine):
                         await self.callbacks(transition.prepare, event_data)
                         if all(await self.await_all([partial(c.check, event_data) for c in transition.conditions])):
                             return True
-                    except BaseException as err:
-                        event_data.error = err
+                    except BaseException as err:  # pylint: disable=broad-except
+                        event_data.error = err  # type: ignore[assignment]
                         if self.on_exception:
                             await self.callbacks(self.on_exception, event_data)
                         else:
@@ -638,7 +645,7 @@ class AsyncTimeout(AsyncState):
 
     dynamic_methods = ["on_timeout"]
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         """
         Args:
             **kwargs: If kwargs contain 'timeout', assign the float value to
@@ -646,8 +653,8 @@ class AsyncTimeout(AsyncState):
                 passed with kwargs as well or an AttributeError will be thrown
                 if timeout is not passed or equal 0.
         """
-        self.timeout = kwargs.pop("timeout", 0)
-        self._on_timeout = None
+        self.timeout: float = kwargs.pop("timeout", 0)
+        self._on_timeout: Optional[CallbackList] = None
         if self.timeout > 0:
             try:
                 self.on_timeout = kwargs.pop("on_timeout")
@@ -655,10 +662,10 @@ class AsyncTimeout(AsyncState):
                 raise AttributeError("Timeout state requires 'on_timeout' when timeout is set.") from None
         else:
             self.on_timeout = kwargs.pop("on_timeout", None)
-        self.runner = {}
+        self.runner: Dict[int, 'asyncio.Task[Any]'] = {}
         super().__init__(*args, **kwargs)
 
-    async def enter(self, event_data):
+    async def enter(self, event_data: 'AsyncEventData') -> None:
         """
         Extends `transitions.core.State.enter` by starting a timeout timer for
         the current model when the state is entered and self.timeout is larger
@@ -671,7 +678,7 @@ class AsyncTimeout(AsyncState):
             self.runner[id(event_data.model)] = self.create_timer(event_data)
         await super().enter(event_data)
 
-    async def exit(self, event_data):
+    async def exit(self, event_data: 'AsyncEventData') -> None:
         """
         Cancels running timeout tasks stored in `self.runner` first (when not note) before
         calling further exit callbacks.
@@ -687,7 +694,7 @@ class AsyncTimeout(AsyncState):
             timer_task.cancel()
         await super().exit(event_data)
 
-    def create_timer(self, event_data):
+    def create_timer(self, event_data: 'AsyncEventData') -> 'asyncio.Task[Any]':
         """
         Creates and returns a running timer. Shields self._process_timeout to prevent cancellation when
         transitioning away from the current state (which cancels the timer) while processing timeout callbacks.
@@ -696,12 +703,12 @@ class AsyncTimeout(AsyncState):
 
         Returns (cancellable): A running timer with a cancel method
         """
-        async def _timeout():
+        async def _timeout() -> None:
             await asyncio.sleep(self.timeout)
             await asyncio.shield(self._process_timeout(event_data))
         return asyncio.create_task(_timeout())
 
-    async def _process_timeout(self, event_data):
+    async def _process_timeout(self, event_data: 'AsyncEventData') -> None:
         _LOGGER.debug("%sTimeout state %s. Processing callbacks...", event_data.machine.name, self.name)
         event_data = AsyncEventData(event_data.state, AsyncEvent("timeout", event_data.machine),
                                     event_data.machine, event_data.model, args=tuple(), kwargs={})
@@ -711,13 +718,13 @@ class AsyncTimeout(AsyncState):
         except BaseException as err:
             _LOGGER.warning("%sException raised while processing timeout!",
                             event_data.machine.name)
-            event_data.error = err
+            event_data.error = err  # type: ignore[assignment]
             try:
                 if event_data.machine.on_exception:
-                    await event_data.machine.callbacks(event_data.machine.on_exception, event_data)
+                    await event_data.machine.callbacks(event_data.machine.on_exception, event_data)  # type: ignore[func-returns-value]
                 else:
                     raise
-            except BaseException as err2:
+            except BaseException as err2:  # pylint: disable=broad-except
                 _LOGGER.error("%sHandling timeout exception '%s' caused another exception: %s. "
                               "Cancel running transitions...", event_data.machine.name, repr(err), repr(err2))
                 await event_data.machine.cancel_running_transitions(event_data.model)
@@ -726,29 +733,29 @@ class AsyncTimeout(AsyncState):
         _LOGGER.info("%sTimeout state %s processed.", event_data.machine.name, self.name)
 
     @property
-    def on_timeout(self):
+    def on_timeout(self) -> CallbackList:
         """
         List of strings and callables to be called when the state timeouts.
         """
-        return self._on_timeout
+        return self._on_timeout  # type: ignore[return-value]
 
     @on_timeout.setter
-    def on_timeout(self, value):
+    def on_timeout(self, value: Optional[CallbackList]) -> None:
         """Listifies passed values and assigns them to on_timeout."""
-        self._on_timeout = listify(value)
+        self._on_timeout = listify(value)  # type: ignore[assignment]
 
 
-class _DictionaryMock(dict):
+class _DictionaryMock(dict):  # type: ignore[type-arg]
 
-    def __init__(self, item):
+    def __init__(self, item: 'deque[Any]') -> None:
         super().__init__()
+        self._value: 'deque[Any]' = item
+
+    def __setitem__(self, key: Any, item: 'deque[Any]') -> None:
         self._value = item
 
-    def __setitem__(self, key, item):
-        self._value = item
-
-    def __getitem__(self, key):
+    def __getitem__(self, key: Any) -> 'deque[Any]':
         return self._value
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return repr("{{'*': {0}}}".format(self._value))

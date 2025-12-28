@@ -9,6 +9,7 @@
 
 from functools import partial
 import itertools
+from typing import Any, Callable, Tuple, Type, Union
 
 from ..core import Machine, Transition
 
@@ -38,7 +39,7 @@ class MachineFactory(object):
 
     # get one of the predefined classes which fulfill the criteria
     @staticmethod
-    def get_predefined(graph=False, nested=False, locked=False, asyncio=False):
+    def get_predefined(graph: bool = False, nested: bool = False, locked: bool = False, asyncio: bool = False) -> Type[Machine]:
         """A function to retrieve machine classes by required functionality.
         Args:
             graph (bool): Whether the returned class should contain graph support.
@@ -58,19 +59,20 @@ class LockedHierarchicalMachine(LockedMachine, HierarchicalMachine):
         A threadsafe hierarchical machine.
     """
 
-    event_cls = NestedEvent
+    event_cls = NestedEvent  # type: ignore[assignment]
 
-    def _get_qualified_state_name(self, state):
-        return self.get_global_name(state.name)
+    def _get_qualified_state_name(self, state: Any) -> str:
+        result = self.get_global_name(state.name)
+        return result if isinstance(result, str) else result[0]
 
 
-class LockedGraphMachine(GraphMachine, LockedMachine):
+class LockedGraphMachine(GraphMachine, LockedMachine):  # type: ignore[misc]
     """
         A threadsafe machine with graph support.
     """
 
     @staticmethod
-    def format_references(func):
+    def format_references(func: Union[Callable[..., Any], partial[Any]]) -> str:
         if isinstance(func, partial) and func.func.__name__.startswith('_locked_method'):
             return "%s(%s)" % (
                 func.args[0].__name__,
@@ -81,7 +83,7 @@ class LockedGraphMachine(GraphMachine, LockedMachine):
         return GraphMachine.format_references(func)
 
 
-class LockedHierarchicalGraphMachine(GraphMachine, LockedHierarchicalMachine):
+class LockedHierarchicalGraphMachine(GraphMachine, LockedHierarchicalMachine):  # type: ignore[misc]
     """
         A threadsafe hierarchical machine with graph support.
     """
@@ -90,24 +92,24 @@ class LockedHierarchicalGraphMachine(GraphMachine, LockedHierarchicalMachine):
     event_cls = NestedEvent
 
     @staticmethod
-    def format_references(func):
+    def format_references(func: Union[Callable[..., Any], partial[Any]]) -> str:
         return LockedGraphMachine.format_references(func)
 
 
 class AsyncGraphMachine(GraphMachine, AsyncMachine):
     """A machine that supports asynchronous event/callback processing with Graphviz support."""
 
-    transition_cls = AsyncTransition
+    transition_cls = AsyncTransition  # type: ignore[assignment]
 
 
 class HierarchicalAsyncGraphMachine(GraphMachine, HierarchicalAsyncMachine):
     """A hierarchical machine that supports asynchronous event/callback processing with Graphviz support."""
 
-    transition_cls = NestedAsyncTransition
+    transition_cls = NestedAsyncTransition  # type: ignore[assignment]
 
 
 # 4d tuple (graph, nested, locked, async)
-_CLASS_MAP = {
+_CLASS_MAP: dict[Tuple[bool, bool, bool, bool], Type[Machine]] = {
     (False, False, False, False): Machine,
     (False, False, True, False): LockedMachine,
     (False, True, False, False): HierarchicalMachine,

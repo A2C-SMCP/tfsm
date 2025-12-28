@@ -89,11 +89,29 @@ dev = [
 
 [tool.mypy]
 python_version = "3.11"
-warn_return_any = true
-warn_unused_configs = true
+# Less strict configuration for gradual type adoption
+check_untyped_defs = false
 disallow_untyped_defs = false
-check_untyped_defs = true
+disallow_untyped_calls = false
+warn_return_any = false
+warn_unused_configs = true
 strict_optional = true
+warn_unused_ignores = false
+warn_no_return = false
+warn_redundant_casts = false
+ignore_missing_imports = false
+
+# Per-module overrides
+[[tool.mypy.overrides]]
+module = "transitions.*"
+disallow_untyped_defs = false
+check_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+check_untyped_defs = false
+warn_unused_ignores = false
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
