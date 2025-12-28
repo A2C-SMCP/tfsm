@@ -1,9 +1,9 @@
 """
-transitions.extensions.diagrams
+tfsm.extensions.diagrams
 -------------------------------
 
 Graphviz support for (nested) machines. This also includes partial views
-of currently valid transitions.
+of currently valid tfsm.
 """
 
 import logging
@@ -29,7 +29,7 @@ _LOGGER.addHandler(logging.NullHandler())
 
 
 class Graph(BaseGraph):
-    """Graph creation for transitions.core.Machine."""
+    """Graph creation for tfsm.core.Machine."""
 
     def _add_nodes(self, states: list[Any], container: AGraphType) -> None:
         for state in states:
@@ -129,7 +129,7 @@ class Graph(BaseGraph):
 
 
 class NestedGraph(Graph):
-    """Graph creation support for transitions.extensions.nested.HierarchicalGraphMachine."""
+    """Graph creation support for tfsm.extensions.nested.HierarchicalGraphMachine."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         self.seen_transitions: list[Any] = []

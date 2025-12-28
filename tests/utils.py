@@ -1,8 +1,7 @@
-from transitions import Machine
+from tfsm import Machine
 
 
-class Stuff(object):
-
+class Stuff:
     is_false = False
     is_True = True
 
@@ -11,13 +10,13 @@ class Stuff(object):
 
         self.state = None
         self.message = None
-        states = ['A', 'B', 'C', 'D', 'E', 'F'] if states is None else states
+        states = ["A", "B", "C", "D", "E", "F"] if states is None else states
 
         args = [self]
         kwargs = {
-            'states': states,
-            'initial': 'A',
-            'name': 'Test Machine',
+            "states": states,
+            "initial": "A",
+            "name": "Test Machine",
         }
         kwargs.update(extra_kwargs)
         if machine_cls is not None:
@@ -44,7 +43,7 @@ class Stuff(object):
 
     @staticmethod
     def extract_boolean(event_data):
-        return event_data.kwargs['boolean']
+        return event_data.kwargs["boolean"]
 
     def goodbye(self):
         self.message = "So long, suckers!"
@@ -60,7 +59,7 @@ class Stuff(object):
 
     def hello_F(self):
         if self.message is None:
-            self.message = ''
+            self.message = ""
         self.message += "Hello F!"
 
     def increase_level(self):
@@ -75,7 +74,7 @@ class Stuff(object):
         self.message = message
 
     def extract_message(self, event_data):
-        self.message = event_data.kwargs['message']
+        self.message = event_data.kwargs["message"]
 
     def on_enter_E(self, msg=None):
         self.message = "I am E!" if msg is None else msg
@@ -92,8 +91,7 @@ class Stuff(object):
 
 
 class InheritedStuff(Machine):
-
-    def __init__(self, states, initial='A'):
+    def __init__(self, states, initial="A"):
 
         self.state = None
 
@@ -104,11 +102,11 @@ class InheritedStuff(Machine):
         return True
 
 
-class DummyModel(object):
+class DummyModel:
     pass
 
 
-class SomeContext(object):
+class SomeContext:
     def __init__(self, event_list):
         self._event_list = event_list
 

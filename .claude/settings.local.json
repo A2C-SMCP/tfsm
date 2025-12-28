@@ -12,7 +12,10 @@
       "Bash(uv run mypy:*)",
       "Bash(mypy:*)",
       "Bash(.:*)",
-      "Bash(uv run poe lint:*)"
+      "Bash(uv run poe lint:*)",
+      "Bash(uv run poe mypy:*)",
+      "Bash(uv run poe format:*)",
+      "Bash(uv run poe test:*)"
     ]
   }
 }

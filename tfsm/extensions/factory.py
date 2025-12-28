@@ -1,8 +1,8 @@
 """
-transitions.extensions.factory
+tfsm.extensions.factory
 ------------------------------
 
-This module contains the definitions of classes which combine the functionality of transitions'
+This module contains the definitions of classes which combine the functionality of tfsm'
 extension modules. These classes can be accessed by names as well as through a static convenience
 factory object.
 """
@@ -18,7 +18,7 @@ from .locking import LockedMachine
 from .nesting import HierarchicalMachine, NestedEvent, NestedTransition
 
 try:
-    from transitions.extensions.asyncio import AsyncMachine, AsyncTransition, HierarchicalAsyncMachine, NestedAsyncTransition
+    from tfsm.extensions.asyncio import AsyncMachine, AsyncTransition, HierarchicalAsyncMachine, NestedAsyncTransition
 except (ImportError, SyntaxError):  # pragma: no cover
 
     class AsyncMachine(Machine):  # type: ignore

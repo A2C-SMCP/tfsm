@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-transitions.extensions.nesting
+tfsm.extensions.nesting
 ------------------------------
 
-Implements a hierarchical state machine based on transitions.core.Machine. Supports nested states, parallel states
+Implements a hierarchical state machine based on tfsm.core.Machine. Supports nested states, parallel states
 and the composition of multiple hierarchical state machines.
 """
 
@@ -58,7 +58,7 @@ def resolve_order(state_tree: dict[str, Any]) -> Any:  # reversed[List[List[str]
 
 
 class FunctionWrapper:
-    """A wrapper to enable transitions' convenience function to_<state> for nested states.
+    """A wrapper to enable tfsm' convenience function to_<state> for nested states.
     This allows to call model.to_A.s1.C() in case a custom separator has been chosen."""
 
     def __init__(self, func: Callback) -> None:
@@ -101,7 +101,7 @@ class NestedEvent(Event):
         raise RuntimeError("NestedEvent.trigger must not be called directly. Call Machine.trigger_event instead.")
 
     def trigger_nested(self, event_data: "NestedEventData") -> bool:
-        """Executes all transitions that match the current state,
+        """Executes all tfsm that match the current state,
         halting as soon as one successfully completes.
         It is up to the machine's configuration of the Event whether processing happens queued (sequentially) or
         whether further Events are processed as they occur. NOTE: This should only
@@ -282,7 +282,7 @@ class NestedTransition(Transition):
 
         # when destination is empty this means we are already in the state we want to enter
         # we deal with a reflexive transition here or a sibling state that has already been entered
-        # as internal transitions have been already dealt with
+        # as internal tfsm have been already dealt with
         # the 'root' of src and dest will be set to the parent and dst (and src) substate will be set as destination
         if not dst_name_path:
             dst_name_path = [root.pop()]
@@ -430,7 +430,7 @@ class NestedTransition(Transition):
 
 
 class HierarchicalMachine(Machine):
-    """Extends transitions.core.Machine by capabilities to handle nested states.
+    """Extends tfsm.core.Machine by capabilities to handle nested states.
     A hierarchical machine REQUIRES NestedStates, NestedEvent and NestedTransitions
     (or any subclass of it) to operate.
     """
@@ -521,7 +521,7 @@ class HierarchicalMachine(Machine):
         self.scoped, self.states, self.events, self.prefix_path = self._stack.pop()  # type: ignore[assignment]
 
     def add_model(self, model: Any, initial: Any | None = None) -> None:  # type: ignore[override]
-        """Extends transitions.core.Machine.add_model by applying a custom 'to' function to
+        """Extends tfsm.core.Machine.add_model by applying a custom 'to' function to
         the added model.
         """
         models = [self if mod is self.self_literal else mod for mod in listify(model)]
@@ -691,14 +691,14 @@ class HierarchicalMachine(Machine):
         return ordered_states
 
     def get_nested_transitions(self, trigger: str = "", src_path: list[str] | None = None, dest_path: list[str] | None = None) -> list[Any]:
-        """Retrieves a list of all transitions matching the passed requirements.
+        """Retrieves a list of all tfsm matching the passed requirements.
         Args:
-            trigger (str): If set, return only transitions related to this trigger.
-            src_path (list(str)): If set, return only transitions with this source state.
-            dest_path (list(str)): If set, return only transitions with this destination.
+            trigger (str): If set, return only tfsm related to this trigger.
+            src_path (list(str)): If set, return only tfsm with this source state.
+            dest_path (list(str)): If set, return only tfsm with this destination.
 
         Returns:
-            list(NestedTransitions) of valid transitions.
+            list(NestedTransitions) of valid tfsm.
         """
         if src_path and dest_path:
             src = self.state_cls.separator.join(src_path)
@@ -799,14 +799,14 @@ class HierarchicalMachine(Machine):
     def get_transitions(
         self, trigger: str = "", source: str | StateName = "*", dest: str | StateName = "*", delegate: bool = False
     ) -> list[Any]:
-        """Return the transitions from the Machine.
+        """Return the tfsm from the Machine.
         Args:
             trigger (str): Trigger name of the transition.
-            source (str, State or Enum): Limits list to transitions from a certain state.
-            dest (str, State or Enum): Limits list to transitions to a certain state.
+            source (str, State or Enum): Limits list to tfsm from a certain state.
+            dest (str, State or Enum): Limits list to tfsm to a certain state.
             delegate (Optional[bool]): If True, consider delegations to parents of source
         Returns:
-            list(NestedTransitions): All transitions matching the request.
+            list(NestedTransitions): All tfsm matching the request.
         """
         with self():
             source_path = (
@@ -838,11 +838,11 @@ class HierarchicalMachine(Machine):
             return matches
 
     def _remove_nested_transitions(self, trigger: str, src_path: list[str], dest_path: list[str]) -> None:
-        """Remove transitions from nested states.
+        """Remove tfsm from nested states.
         Args:
             trigger (str): Trigger name of the transition to be removed.
-            src_path (list(str)): If empty, all transitions that match dest_path and trigger will be removed.
-            dest_path (list(str)): If empty, all transitions that match src_path and trigger will be removed.
+            src_path (list(str)): If empty, all tfsm that match dest_path and trigger will be removed.
+            dest_path (list(str)): If empty, all tfsm that match src_path and trigger will be removed.
         """
         cur_src = self.state_cls.separator.join(src_path)
         cur_dst = self.state_cls.separator.join(dest_path)
@@ -863,11 +863,11 @@ class HierarchicalMachine(Machine):
                 )
 
     def remove_transition(self, trigger: str, source: str | StateName = "*", dest: str | StateName = "*") -> None:
-        """Removes transitions matching the passed criteria.
+        """Removes tfsm matching the passed criteria.
         Args:
             trigger (str): Trigger name of the transition.
-            source (str, State or Enum): Limits list to transitions from a certain state.
-            dest (str, State or Enum): Limits list to transitions to a certain state.
+            source (str, State or Enum): Limits list to tfsm from a certain state.
+            dest (str, State or Enum): Limits list to tfsm to a certain state.
         """
         with self():
             source_path = (
@@ -931,7 +931,7 @@ class HierarchicalMachine(Machine):
         return False
 
     def get_triggers(self, *args: Any) -> list[str]:
-        """Extends transitions.core.Machine.get_triggers to also include parent state triggers."""
+        """Extends tfsm.core.Machine.get_triggers to also include parent state triggers."""
         triggers = []
         with self():
             for state in args:
@@ -940,7 +940,7 @@ class HierarchicalMachine(Machine):
                 if len(state_path) > 1:  # we only need to check substates when 'state_name' refers to a substate
                     with self(state_path[0]):
                         triggers.extend(self.get_nested_triggers(state_path[1:]))
-                while state_path:  # check all valid transitions for parent states
+                while state_path:  # check all valid tfsm for parent states
                     triggers.extend(super().get_triggers(self.state_cls.separator.join(state_path)))
                     state_path.pop()
         return triggers
@@ -1115,7 +1115,7 @@ class HierarchicalMachine(Machine):
             state["initial"] = [s["name"] if isinstance(s, dict) else s for s in state_children]
         else:
             state_children = state.pop("children", state.pop("states", []))
-        transitions = state.pop("transitions", [])
+        transitions = state.pop("tfsm", [])
         new_state = self._create_state(**state)
         self.states[new_state.name] = new_state
         self._init_state(new_state)  # type: ignore[arg-type]
@@ -1155,7 +1155,7 @@ class HierarchicalMachine(Machine):
         new_states = [s for s in state.states.values() if remap is None or (s.name if hasattr(s, "name") else s) not in remap]
         self.add_states(new_states)
         for evt in state.events.values():
-            # skip auto transitions
+            # skip auto tfsm
             if state.auto_transitions and evt.name.startswith("to_") and evt.name.removeprefix("to_") in state.states:
                 continue
             if evt.transitions and evt.name not in self.events:
@@ -1285,7 +1285,7 @@ class HierarchicalMachine(Machine):
             *args: Variable length argument list which is passed to the triggered event.
             **kwargs: Arbitrary keyword arguments which is passed to the triggered event.
         Returns:
-            bool: True if a transitions has been conducted or the trigger event has been queued.
+            bool: True if a tfsm has been conducted or the trigger event has been queued.
         """
         return self.trigger_event(model, trigger_name, *args, **kwargs)
 

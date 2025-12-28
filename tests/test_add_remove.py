@@ -1,24 +1,23 @@
-from transitions import Machine
+import gc
+import threading
+import weakref
 from unittest import TestCase
 
-import gc
-import weakref
-import threading
+from tfsm import Machine
 
 
-class Dummy(object):
+class Dummy:
     pass
 
 
 class TestTransitionsAddRemove(TestCase):
-
     def test_garbage_collection(self):
 
-        states = ['A', 'B', 'C', 'D', 'E', 'F']
-        machine = Machine(model=[], states=states, initial='A', name='Test Machine')
-        machine.add_transition('advance', 'A', 'B')
-        machine.add_transition('advance', 'B', 'C')
-        machine.add_transition('advance', 'C', 'D')
+        states = ["A", "B", "C", "D", "E", "F"]
+        machine = Machine(model=[], states=states, initial="A", name="Test Machine")
+        machine.add_transition("advance", "A", "B")
+        machine.add_transition("advance", "B", "C")
+        machine.add_transition("advance", "C", "D")
 
         s1 = Dummy()
         s2 = Dummy()
@@ -48,19 +47,19 @@ class TestTransitionsAddRemove(TestCase):
         self.assertTrue(s3.is_C())
 
     def test_add_model_initial_state(self):
-        states = ['A', 'B', 'C', 'D', 'E', 'F']
-        machine = Machine(model=[], states=states, initial='A', name='Test Machine')
-        machine.add_transition('advance', 'A', 'B')
-        machine.add_transition('advance', 'B', 'C')
-        machine.add_transition('advance', 'C', 'D')
+        states = ["A", "B", "C", "D", "E", "F"]
+        machine = Machine(model=[], states=states, initial="A", name="Test Machine")
+        machine.add_transition("advance", "A", "B")
+        machine.add_transition("advance", "B", "C")
+        machine.add_transition("advance", "C", "D")
 
         s1 = Dummy()
         s2 = Dummy()
         s3 = Dummy()
 
         machine.add_model(s1)
-        machine.add_model(s2, initial='B')
-        machine.add_model(s3, initial='C')
+        machine.add_model(s2, initial="B")
+        machine.add_model(s3, initial="C")
 
         s1.advance()
         s2.advance()
@@ -71,11 +70,11 @@ class TestTransitionsAddRemove(TestCase):
         self.assertTrue(s3.is_D())
 
     def test_add_model_no_initial_state(self):
-        states = ['A', 'B', 'C', 'D', 'E', 'F']
-        machine = Machine(model=[], states=states, name='Test Machine', initial=None)
-        machine.add_transition('advance', 'A', 'B')
-        machine.add_transition('advance', 'B', 'C')
-        machine.add_transition('advance', 'C', 'D')
+        states = ["A", "B", "C", "D", "E", "F"]
+        machine = Machine(model=[], states=states, name="Test Machine", initial=None)
+        machine.add_transition("advance", "A", "B")
+        machine.add_transition("advance", "B", "C")
+        machine.add_transition("advance", "C", "D")
 
         s1 = Dummy()
         s2 = Dummy()
@@ -83,9 +82,9 @@ class TestTransitionsAddRemove(TestCase):
 
         with self.assertRaises(ValueError):
             machine.add_model(s1)
-        machine.add_model(s1, initial='A')
-        machine.add_model(s2, initial='B')
-        machine.add_model(s3, initial='C')
+        machine.add_model(s1, initial="A")
+        machine.add_model(s2, initial="B")
+        machine.add_model(s3, initial="C")
 
         s1.advance()
         s2.advance()

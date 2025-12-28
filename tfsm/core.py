@@ -1,8 +1,8 @@
 """
-transitions.core
+tfsm.core
 ----------------
 
-This module contains the central parts of transitions which are the state machine logic, state
+This module contains the central parts of tfsm which are the state machine logic, state
 and transition concepts.
 """
 
@@ -19,7 +19,7 @@ from typing import Any, TypeAlias, Union, cast
 _LOGGER = logging.getLogger(__name__)
 _LOGGER.addHandler(logging.NullHandler())
 
-warnings.filterwarnings(action="default", message=r".*transitions version.*", category=DeprecationWarning)
+warnings.filterwarnings(action="default", message=r".*tfsm version.*", category=DeprecationWarning)
 
 # Type aliases for better type hints
 StateName: TypeAlias = str | Enum
@@ -53,7 +53,7 @@ def listify(obj: Any) -> list[Any] | tuple[Any, ...]:
 def _prep_ordered_arg(desired_length: int, arguments: Any = None) -> list[Any]:
     """Ensure list of arguments passed to add_ordered_transitions has the proper length.
     Expands the given arguments and apply same condition, callback
-    to all transitions if only one has been given.
+    to all tfsm if only one has been given.
 
     Args:
         desired_length (int): The size of the resulting list
@@ -67,7 +67,7 @@ def _prep_ordered_arg(desired_length: int, arguments: Any = None) -> list[Any]:
         result = list(listify(arguments))
 
     if len(result) != desired_length and len(result) != 1:
-        raise ValueError("Argument length must be either 1 or the same length as the number of transitions.")
+        raise ValueError("Argument length must be either 1 or the same length as the number of tfsm.")
     if len(result) == 1:
         # Expand to desired length (even if it's [None])
         result = result * desired_length
@@ -389,7 +389,7 @@ class EventData:
 
 
 class Event:
-    """A collection of transitions assigned to the same trigger"""
+    """A collection of tfsm assigned to the same trigger"""
 
     __slots__ = ["name", "machine", "transitions"]
 
@@ -406,7 +406,7 @@ class Event:
         self.transitions: defaultdict[str, list[Transition]] = defaultdict(list)
 
     def add_transition(self, transition: "Transition") -> None:
-        """Add a transition to the list of potential transitions.
+        """Add a transition to the list of potential tfsm.
         Args:
             transition (Transition): The Transition instance to add to the
                 list.
@@ -416,7 +416,7 @@ class Event:
         self.transitions[source_key].append(transition)
 
     def trigger(self, model: Any, *args: Any, **kwargs: Any) -> bool:
-        """Executes all transitions that match the current state,
+        """Executes all tfsm that match the current state,
         halting as soon as one successfully completes. More precisely, it prepares a partial
         of the internal ``_trigger`` function, passes this to ``Machine._process``.
         It is up to the machine's configuration of the Event whether processing happens queued (sequentially) or
@@ -495,7 +495,7 @@ class Event:
         return "<%s('%s')@%s>" % (type(self).__name__, self.name, id(self))
 
     def add_callback(self, trigger: str, func: str | Callback) -> None:
-        """Add a new before or after callback to all available transitions.
+        """Add a new before or after callback to all available tfsm.
         Args:
             trigger (str): The type of triggering event. Must be one of
                 'before', 'after' or 'prepare'.
@@ -506,13 +506,13 @@ class Event:
 
 
 class Machine:
-    """Machine manages states, transitions and models. In case it is initialized without a specific model
+    """Machine manages states, tfsm and models. In case it is initialized without a specific model
     (or specifically no model), it will also act as a model itself. Machine takes also care of decorating
-    models with conveniences functions related to added transitions and states during runtime.
+    models with conveniences functions related to added tfsm and states during runtime.
 
     Attributes:
         states (OrderedDict): Collection of all registered states.
-        events (dict): Collection of transitions ordered by trigger/event.
+        events (dict): Collection of tfsm ordered by trigger/event.
         models (list): List of models attached to the machine.
         initial (str): Name of the initial state for new models.
         prepare_event (list): Callbacks executed when an event is triggered.
@@ -520,9 +520,9 @@ class Machine:
             Callbacks will be executed BEFORE the custom callbacks assigned to the transition.
         after_state_change (list): Callbacks executed after the transition has been conducted.
             Callbacks will be executed AFTER the custom callbacks assigned to the transition.
-        finalize_event (list): Callbacks will be executed after all transitions callbacks have been executed.
+        finalize_event (list): Callbacks will be executed after all tfsm callbacks have been executed.
             Callbacks mentioned here will also be called if a transition or condition check raised an error.
-        _queued (bool): Whether transitions in callbacks should be executed immediately (False) or sequentially.
+        _queued (bool): Whether tfsm in callbacks should be executed immediately (False) or sequentially.
         send_event (bool): When True, any arguments passed to trigger methods will be wrapped in an EventData
             object, allowing indirect and encapsulated access to data. When False, all positional and keyword
             arguments will be passed directly to all callback methods.
@@ -574,7 +574,7 @@ class Machine:
                 string, an enum member or a State instance. If string or enum member, a new generic State
                 instance will be created that is named according to the string or enum member's name.
             initial (str, Enum or State): The initial state of the passed model[s].
-            transitions (list): An optional list of transitions. Each element
+            transitions (list): An optional list of tfsm. Each element
                 is a dictionary of named arguments to be passed onto the
                 Transition initializer.
             send_event (boolean): When True, any arguments passed to trigger
@@ -599,19 +599,24 @@ class Machine:
                 the transition happened. It receives the very same args as normal
                 callbacks.
             name: If a name is set, it will be used as a prefix for logger output
-            queued (boolean): When True, processes transitions sequentially. A trigger
+            queued (boolean): When True, processes tfsm sequentially. A trigger
                 executed in a state callback function will be queued and executed later.
-                Due to the nature of the queued processing, all transitions will
+                Due to the nature of the queued processing, all tfsm will
                 _always_ return True since conditional checks cannot be conducted at queueing time.
-            prepare_event: A callable called on for before possible transitions will be processed.
+            prepare_event: A callable called on for before possible tfsm will be processed.
                 It receives the very same args as normal callbacks.
-            finalize_event: A callable called on for each triggered event after transitions have been processed.
+            finalize_event: A callable called on for each triggered event after tfsm have been processed.
                 This is also called when a transition raises an exception.
             on_exception: A callable called when an event raises an exception. If not set,
                 the exception will be raised instead.
 
             **kwargs additional arguments passed to next class in MRO. This can be ignored in most cases.
         """
+
+        # Handle legacy markup format where "tfsm" was used as a key instead of "transitions"
+        # This is needed for backward compatibility with old markup configurations
+        if "tfsm" in kwargs and transitions is None:
+            transitions = kwargs.pop("tfsm")
 
         # calling super in case `Machine` is used as a mix in
         # all keyword arguments should be consumed by now if this is not the case
@@ -692,7 +697,7 @@ class Machine:
 
     def remove_model(self, model: Any | list[Any]) -> None:
         """Remove a model from the state machine. The model will still contain all previously added triggers
-        and callbacks, but will not receive updates when states or transitions are added to the Machine.
+        and callbacks, but will not receive updates when states or tfsm are added to the Machine.
         If an event queue is used, all queued events of that model will be removed."""
         models = listify(model)
 
@@ -787,7 +792,7 @@ class Machine:
 
     @property
     def finalize_event(self) -> CallbackList:
-        """Callbacks will be executed after all transitions callbacks have been executed.
+        """Callbacks will be executed after all tfsm callbacks have been executed.
         Callbacks mentioned here will also be called if a transition or condition check raised an error."""
         return self._finalize_event
 
@@ -923,7 +928,7 @@ class Machine:
                 self._add_model_to_state(state, model)
             if self.auto_transitions:
                 for a_state in self.states.keys():
-                    # add all states as sources to auto transitions 'to_<state>' with dest <state>
+                    # add all states as sources to auto tfsm 'to_<state>' with dest <state>
                     if a_state == state.name:
                         if self.model_attribute == "state":
                             method_name = "to_%s" % a_state
@@ -1012,7 +1017,7 @@ class Machine:
             *args: Variable length argument list which is passed to the triggered event.
             **kwargs: Arbitrary keyword arguments which is passed to the triggered event.
         Returns:
-            bool: True if a transitions has been conducted or the trigger event has been queued.
+            bool: True if a tfsm has been conducted or the trigger event has been queued.
         """
         try:
             event = self.events[trigger_name]
@@ -1105,10 +1110,10 @@ class Machine:
             self.events[trigger].add_transition(_trans)
 
     def add_transitions(self, transitions: list[Any] | Any) -> None:
-        """Add several transitions.
+        """Add several tfsm.
 
         Args:
-            transitions (list): A list of transitions.
+            transitions (list): A list of tfsm.
 
         """
         for trans in listify(transitions):
@@ -1130,10 +1135,10 @@ class Machine:
         prepare: Any | None = None,
         **kwargs: Any,
     ) -> None:
-        """Add a set of transitions that move linearly from state to state.
+        """Add a set of tfsm that move linearly from state to state.
         Args:
             states (list): A list of state names defining the order of the
-                transitions. E.g., ['A', 'B', 'C'] will generate transitions
+                tfsm. E.g., ['A', 'B', 'C'] will generate tfsm
                 for A --> B, B --> C, and C --> A (if loop is True). If states
                 is None, all states in the current instance will be used.
             trigger (str): The name of the trigger method that advances to
@@ -1142,7 +1147,7 @@ class Machine:
                 state to the first state.
             loop_includes_initial (boolean): If no initial state was defined in
                 the machine, setting this to True will cause the _initial state
-                placeholder to be included in the added transitions. This argument
+                placeholder to be included in the added tfsm. This argument
                 has no effect if the states argument is passed without the
                 initial state included.
             conditions (str or list): Condition(s) that must pass in order
@@ -1162,7 +1167,7 @@ class Machine:
             states = list(self.states.keys())  # need to listify for Python3
         len_transitions = len(states)
         if len_transitions < 2:
-            raise ValueError("Can't create ordered transitions on a Machine with fewer than 2 states.")
+            raise ValueError("Can't create ordered tfsm on a Machine with fewer than 2 states.")
         if not loop:
             len_transitions -= 1
         # ensure all args are the proper length
@@ -1210,11 +1215,11 @@ class Machine:
             )
 
     def get_transitions(self, trigger: str = "", source: str | StateName = "*", dest: str | StateName = "*") -> list["Transition"]:
-        """Return the transitions from the Machine.
+        """Return the tfsm from the Machine.
         Args:
             trigger (str): Trigger name of the transition.
-            source (str, Enum or State): Limits list to transitions from a certain state.
-            dest (str, Enum or State): Limits list to transitions to a certain state.
+            source (str, Enum or State): Limits list to tfsm from a certain state.
+            dest (str, Enum or State): Limits list to tfsm to a certain state.
         """
         if trigger:
             try:
@@ -1238,8 +1243,8 @@ class Machine:
         """Removes a transition from the Machine and all models.
         Args:
             trigger (str): Trigger name of the transition.
-            source (str, Enum or State): Limits removal to transitions from a certain state.
-            dest (str, Enum or State): Limits removal to transitions to a certain state.
+            source (str, Enum or State): Limits removal to tfsm from a certain state.
+            dest (str, Enum or State): Limits removal to tfsm to a certain state.
         """
         # Convert source/dest to lists if needed for filtering
         source_list: list[Any] | str = [s.name if hasattr(s, "name") else s for s in listify(source)] if source != "*" else "*"
@@ -1422,8 +1427,8 @@ class Machine:
 
 
 class MachineError(Exception):
-    """MachineError is used for issues related to state transitions and current states.
-    For instance, it is raised for invalid transitions or machine configuration issues.
+    """MachineError is used for issues related to state tfsm and current states.
+    For instance, it is raised for invalid tfsm or machine configuration issues.
     """
 
     def __init__(self, value: Any) -> None:

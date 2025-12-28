@@ -1,5 +1,5 @@
 """
-transitions
+tfsm
 -----------
 
 A lightweight, object-oriented state machine implementation in Python. Requires Python 3.11+.

@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "transitions"
+name = "tfsm"
 version = "0.9.5"
 description = "A lightweight, object-oriented Python state machine implementation with many extensions."
 readme = "README.md"
@@ -60,23 +60,23 @@ mypy = [
 ]
 # All optional dependencies for development
 all = [
-    "transitions[diagrams,dev,test,mypy]",
+    "tfsm[diagrams,dev,test,mypy]",
 ]
 
 [project.urls]
-Homepage = "http://github.com/pytransitions/transitions"
-Documentation = "https://github.com/pytransitions/transitions"
-Repository = "https://github.com/pytransitions/transitions"
-"Bug Tracker" = "https://github.com/pytransitions/transitions/issues"
-"Source Code" = "https://github.com/pytransitions/transitions"
-Download = "https://github.com/pytransitions/transitions/archive/%s.tar.gz"
+Homepage = "http://github.com/pytransitions/tfsm"
+Documentation = "https://github.com/pytransitions/tfsm"
+Repository = "https://github.com/pytransitions/tfsm"
+"Bug Tracker" = "https://github.com/pytransitions/tfsm/issues"
+"Source Code" = "https://github.com/pytransitions/tfsm"
+Download = "https://github.com/pytransitions/tfsm/archive/%s.tar.gz"
 
 [tool.hatch.build.targets.wheel]
-packages = ["transitions"]
+packages = ["tfsm"]
 
 [tool.hatch.build.targets.wheel.shared-data]
-"transitions/py.typed" = "transitions/py.typed"
-"transitions/data" = "transitions/data"
+"tfsm/py.typed" = "tfsm/py.typed"
+"tfsm/data" = "tfsm/data"
 
 [tool.hatch.build.targets.sdist]
 exclude = [
@@ -95,10 +95,10 @@ exclude = [
 
 [tool.hatch.build]
 include = [
-    "transitions/**/*.py",
-    "transitions/**/*.pyi",
-    "transitions/py.typed",
-    "transitions/data/**",
+    "tfsm/**/*.py",
+    "tfsm/**/*.pyi",
+    "tfsm/py.typed",
+    "tfsm/data/**",
 ]
 
 [dependency-groups]
@@ -134,7 +134,7 @@ ignore_missing_imports = false
 
 # Per-module overrides
 [[tool.mypy.overrides]]
-module = "transitions.*"
+module = "tfsm.*"
 disallow_untyped_defs = false
 check_untyped_defs = false
 
@@ -156,18 +156,18 @@ install-all = "uv pip install -e '.[all]'"
 
 # Test tasks
 test = "uv run pytest tests/"
-test-cov = "uv run pytest --cov=transitions --cov-report=html --cov-report=term tests/"
+test-cov = "uv run pytest --cov=tfsm --cov-report=html --cov-report=term tests/"
 test-no-diagrams = "uv run pytest tests/ --ignore=tests/test_codestyle.py"
 
 # Type checking
-mypy = "uv run mypy --config-file mypy.ini --strict transitions"
+mypy = "uv run mypy --config-file mypy.ini --strict tfsm"
 codestyle = "uv run pytest tests/test_codestyle.py"
 typecheck = ["mypy", "codestyle"]
 
 # Code quality
-lint = "uv run ruff check transitions/"
-format = "uv run ruff format transitions/"
-format-check = "uv run ruff format --check transitions/"
+lint = "uv run ruff check tfsm/"
+format = "uv run ruff format tfsm/"
+format-check = "uv run ruff format --check tfsm/"
 
 # Nox sessions
 nox = "uv run nox"
@@ -210,7 +210,7 @@ serve-docs = "uv run mkdocs serve"
 help = "uv run poe --help"
 
 [tool.coverage.run]
-source = ["transitions"]
+source = ["tfsm"]
 omit = ["*/tests/*", "*/test_*"]
 
 [tool.coverage.report]

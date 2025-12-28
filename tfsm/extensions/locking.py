@@ -1,5 +1,5 @@
 """
-transitions.extensions.factory
+tfsm.extensions.factory
 ------------------------------
 
 Adds locking to machine methods as well as model functions that trigger events.
@@ -15,7 +15,7 @@ from functools import partial
 from threading import Lock, get_ident
 from typing import Any
 
-from transitions.core import Event, Machine, listify
+from tfsm.core import Event, Machine, listify
 
 _LOGGER = logging.getLogger(__name__)
 _LOGGER.addHandler(logging.NullHandler())
@@ -72,7 +72,7 @@ class LockedEvent(Event):
     """An event type which uses the parent's machine context map when triggered."""
 
     def trigger(self, model: Any, *args: Any, **kwargs: Any) -> bool:
-        """Extends transitions.core.Event.trigger by using locks/machine contexts."""
+        """Extends tfsm.core.Event.trigger by using locks/machine contexts."""
         # pylint: disable=protected-access
         # noinspection PyProtectedMember
         # LockedMachine._locked should not be called somewhere else. That's why it should not be exposed
@@ -148,7 +148,7 @@ class LockedMachine(Machine):
 
     # When we attempt to pickle a locked machine, using IDs wont suffice to unpickle the contexts since
     # IDs have changed. We use a 'reference' store with objects as dictionary keys to resolve the newly created
-    # references. This should induce no restrictions compared to transitions 0.8.8 but enable the usage of unhashable
+    # references. This should induce no restrictions compared to tfsm 0.8.8 but enable the usage of unhashable
     # objects in locked machine.
     def __getstate__(self) -> dict[str, Any]:
         state = {k: v for k, v in self.__dict__.items()}
@@ -164,7 +164,7 @@ class LockedMachine(Machine):
         del self._model_context_map_store
 
     def add_model(self, model: Any, initial: Any = None, model_context: Any = None) -> Any:
-        """Extends `transitions.core.Machine.add_model` by `model_context` keyword.
+        """Extends `tfsm.core.Machine.add_model` by `model_context` keyword.
         Args:
             model (list or object): A model (list) to be managed by the machine.
             initial (str, Enum or State): The initial state of the passed model[s].
@@ -181,7 +181,7 @@ class LockedMachine(Machine):
             self.model_context_map[id(mod)].extend(model_context_list)
 
     def remove_model(self, model: Any) -> Any:
-        """Extends `transitions.core.Machine.remove_model` by removing model specific context maps
+        """Extends `tfsm.core.Machine.remove_model` by removing model specific context maps
         from the machine when the model itself is removed."""
         models = listify(model)
 

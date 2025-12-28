@@ -1,5 +1,5 @@
 """
-transitions.extensions.states
+tfsm.extensions.states
 -----------------------------
 
 This module contains mix ins which can be used to extend state functionality.
@@ -58,7 +58,7 @@ class Error(Tags):
         super().__init__(*args, **kwargs)
 
     def enter(self, event_data: EventData) -> None:
-        """Extends transitions.core.State.enter. Throws a `MachineError` if there is
+        """Extends tfsm.core.State.enter. Throws a `MachineError` if there is
         no leaving transition from this state and 'accepted' is not in self.tags.
         """
         if not event_data.machine.get_triggers(self.name) and not self.is_accepted:
@@ -95,7 +95,7 @@ class Timeout(State):
         super().__init__(*args, **kwargs)
 
     def enter(self, event_data: EventData) -> None:
-        """Extends `transitions.core.State.enter` by starting a timeout timer for the current model
+        """Extends `tfsm.core.State.enter` by starting a timeout timer for the current model
         when the state is entered and self.timeout is larger than 0.
         """
         if self.timeout > 0:
@@ -106,7 +106,7 @@ class Timeout(State):
         super().enter(event_data)
 
     def exit(self, event_data: EventData) -> None:
-        """Extends `transitions.core.State.exit` by canceling a timer for the current model."""
+        """Extends `tfsm.core.State.exit` by canceling a timer for the current model."""
         timer = self.runner.get(id(event_data.model), None)
         if timer is not None and timer.is_alive():
             timer.cancel()
@@ -151,13 +151,13 @@ class Volatile(State):
         self.initialized: bool = True
 
     def enter(self, event_data: EventData) -> None:
-        """Extends `transitions.core.State.enter` by creating a volatile object and assign it to
+        """Extends `tfsm.core.State.enter` by creating a volatile object and assign it to
         the current model's hook."""
         setattr(event_data.model, self.volatile_hook, self.volatile_cls())
         super().enter(event_data)
 
     def exit(self, event_data: EventData) -> None:
-        """Extends `transitions.core.State.exit` by deleting the temporal object from the model."""
+        """Extends `tfsm.core.State.exit` by deleting the temporal object from the model."""
         super().exit(event_data)
         try:
             delattr(event_data.model, self.volatile_hook)
@@ -177,8 +177,8 @@ class Retry(State):
 
         Retry(retries=3, on_failure='to_failed')
 
-    transitions the model directly to the 'failed' state, if the machine has
-    automatic transitions enabled (the default).
+    tfsm the model directly to the 'failed' state, if the machine has
+    automatic tfsm enabled (the default).
 
     Attributes:
         retries (int): Number of retries to allow before failing.

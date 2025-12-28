@@ -1,19 +1,20 @@
-from typing import TYPE_CHECKING, Sequence, Union, List
-from unittest import TestCase
+from collections.abc import Sequence
 from types import ModuleType
+from typing import TYPE_CHECKING, List, Union
+from unittest import TestCase
 from unittest.mock import MagicMock
 
-from transitions import Machine
-from transitions.experimental.utils import generate_base_model
-from transitions.experimental.utils import add_transitions, transition, event, with_model_definitions
-from transitions.extensions import HierarchicalMachine
-from transitions.extensions.markup import MarkupMachine
+from tfsm import Machine
+from tfsm.experimental.utils import add_transitions, event, generate_base_model, transition, with_model_definitions
+from tfsm.extensions import HierarchicalMachine
+from tfsm.extensions.markup import MarkupMachine
 
 from .utils import Stuff
 
 if TYPE_CHECKING:
-    from transitions.core import MachineConfig, TransitionConfig
     from typing import Type
+
+    from tfsm.core import MachineConfig, TransitionConfig
 
 
 def import_code(code: str, name: str) -> ModuleType:
@@ -23,7 +24,6 @@ def import_code(code: str, name: str) -> ModuleType:
 
 
 class TestExperimental(TestCase):
-
     def setUp(self) -> None:
         self.machine_cls = Machine  # type: Type[Machine]
         self.create_trigger_class()
@@ -38,7 +38,6 @@ class TestExperimental(TestCase):
     def test_model_override(self):
 
         class Model:
-
             def trigger(self, name: str) -> bool:
                 raise RuntimeError("Should be overridden")
 
@@ -63,15 +62,7 @@ class TestExperimental(TestCase):
         self.assertTrue(model.is_C())
 
     def test_generate_base_model(self):
-        simple_config = {
-            "states": ["A", "B"],
-            "transitions": [
-                ["go", "A", "B"],
-                ["back", "*", "A"]
-            ],
-            "initial": "A",
-            "model_override": True
-        }  # type: MachineConfig
+        simple_config = {"states": ["A", "B"], "tfsm": [["go", "A", "B"], ["back", "*", "A"]], "initial": "A", "model_override": True}  # type: MachineConfig
 
         mod = import_code(generate_base_model(simple_config), "base_module")
         model = mod.BaseModel()
@@ -85,15 +76,7 @@ class TestExperimental(TestCase):
             model.is_C()
 
     def test_generate_base_model_from_machine(self):
-        simple_config = {
-            "states": ["A", "B"],
-            "transitions": [
-                ["go", "A", "B"],
-                ["back", "*", "A"]
-            ],
-            "initial": "A",
-            "model_override": True
-        }  # type: MachineConfig
+        simple_config = {"states": ["A", "B"], "tfsm": [["go", "A", "B"], ["back", "*", "A"]], "initial": "A", "model_override": True}  # type: MachineConfig
 
         # Cannot generate base model from a Machine instance
         with self.assertRaises(ValueError):
@@ -113,19 +96,18 @@ class TestExperimental(TestCase):
     def test_generate_base_model_callbacks(self):
         simple_config = {
             "states": ["A", "B"],
-            "transitions": [
+            "tfsm": [
                 ["go", "A", "B"],
             ],
             "initial": "A",
             "model_override": True,
-            "before_state_change": "call_this"
+            "before_state_change": "call_this",
         }  # type: MachineConfig
 
         mod = import_code(generate_base_model(simple_config), "base_module")
         mock = MagicMock()
 
         class Model(mod.BaseModel):  # type: ignore
-
             @staticmethod
             def call_this() -> None:
                 mock()
@@ -141,11 +123,8 @@ class TestExperimental(TestCase):
             "states": ["A", "B"],
             "auto_transitions": False,
             "model_override": True,
-            "transitions": [
-                ["go", "A", "B"],
-                ["back", "*", "A"]
-            ],
-            "initial": "A"
+            "tfsm": [["go", "A", "B"], ["back", "*", "A"]],
+            "initial": "A",
         }
         mod = import_code(generate_base_model(simple_config), "base_module")
         model = mod.BaseModel()
@@ -158,7 +137,6 @@ class TestExperimental(TestCase):
     def test_decorator(self):
 
         class Model:
-
             state: str = ""
 
             def is_B(self) -> bool:
@@ -185,15 +163,16 @@ class TestExperimental(TestCase):
     def test_decorator_complex(self):
 
         class Model:
-
             state: str = ""
 
             def check_param(self, param: bool) -> bool:
                 return param
 
-            @add_transitions(transition(source="A", dest="B"),
-                             transition(source="B", dest="C", unless=Stuff.this_passes),
-                             transition(source="B", dest="A", conditions=Stuff.this_passes, unless=Stuff.this_fails))
+            @add_transitions(
+                transition(source="A", dest="B"),
+                transition(source="B", dest="C", unless=Stuff.this_passes),
+                transition(source="B", dest="A", conditions=Stuff.this_passes, unless=Stuff.this_fails),
+            )
             def go(self) -> bool:
                 raise RuntimeError("Should be overridden")
 
@@ -215,7 +194,6 @@ class TestExperimental(TestCase):
     def test_event_definition(self):
 
         class Model:
-
             state: str = ""
 
             def is_B(self) -> bool:
@@ -239,12 +217,13 @@ class TestExperimental(TestCase):
     def test_event_definition_complex(self):
 
         class Model:
-
             state: str = ""
 
-            go = event(transition(source="A", dest="B"),
-                       transition(source="B", dest="C", unless=Stuff.this_passes),
-                       transition(source="B", dest="A", conditions=Stuff.this_passes, unless=Stuff.this_fails))
+            go = event(
+                transition(source="A", dest="B"),
+                transition(source="B", dest="C", unless=Stuff.this_passes),
+                transition(source="B", dest="A", conditions=Stuff.this_passes, unless=Stuff.this_fails),
+            )
 
             event = event({"source": "A", "dest": "B", "conditions": "check_param"})
 
@@ -264,7 +243,6 @@ class TestExperimental(TestCase):
 
 
 class TestHSMExperimental(TestExperimental):
-
     def setUp(self):
         self.machine_cls = HierarchicalMachine  # type: Type[HierarchicalMachine]
         self.create_trigger_class()

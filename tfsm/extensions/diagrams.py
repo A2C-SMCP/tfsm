@@ -1,5 +1,5 @@
 """
-transitions.extensions.diagrams
+tfsm.extensions.diagrams
 -------------------------------
 
 This module contains machine and transition definitions for generating diagrams from machine instances.
@@ -17,7 +17,7 @@ import warnings
 from functools import partial
 from typing import Any
 
-from transitions import Transition
+from tfsm import Transition
 
 from ..core import EventData, listify
 from .markup import HierarchicalMarkupMachine, MarkupMachine
@@ -48,7 +48,7 @@ class TransitionGraphSupport(Transition):
 
 
 class GraphMachine(MarkupMachine):
-    """Extends transitions.core.Machine with graph support.
+    """Extends tfsm.core.Machine with graph support.
     Is also used as a mixin for HierarchicalMachine.
     Attributes:
         _pickle_blacklist (list): Objects that should not/do not need to be pickled.
@@ -221,7 +221,7 @@ class GraphMachine(MarkupMachine):
             model (object): The model that `_get_graph` was bound to. This parameter will be set by `GraphMachine`.
             title (str): The title of the created graph.
             force_new (bool): Whether a new graph should be generated even if another graph already exists. This should
-            be true whenever the model's state or machine's transitions/states/events have changed.
+            be true whenever the model's state or machine's tfsm/states/events have changed.
             show_roi (bool): If set to True, only render states that are active and/or can be reached from
                 the current state.
         Returns: AGraph (pygraphviz) or Digraph (graphviz) graph instance that can be drawn.
@@ -242,12 +242,12 @@ class GraphMachine(MarkupMachine):
 
     def get_combined_graph(self, title: str | None = None, force_new: bool = False, show_roi: bool = False) -> Any:
         """This method is currently equivalent to 'get_graph' of the first machine's model.
-        In future releases of transitions, this function will return a combined graph with active states
+        In future releases of tfsm, this function will return a combined graph with active states
         of all models.
         Args:
             title (str): Title of the resulting graph.
             force_new (bool): Whether a new graph should be generated even if another graph already exists. This should
-            be true whenever the model's state or machine's transitions/states/events have changed.
+            be true whenever the model's state or machine's tfsm/states/events have changed.
             show_roi (bool): If set to True, only render states that are active and/or can be reached from
                 the current state.
         Returns: AGraph (pygraphviz) or Digraph (graphviz) graph instance that can be drawn.
@@ -303,7 +303,7 @@ class GraphMachine(MarkupMachine):
 
     def remove_transition(self, trigger: Any, source: Any = "*", dest: Any = "*") -> None:
         super().remove_transition(trigger, source, dest)
-        # update all model graphs since some transitions might be gone
+        # update all model graphs since some tfsm might be gone
         for model in self.models:
             _ = model.get_graph(force_new=True)
 

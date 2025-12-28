@@ -1,5 +1,5 @@
 """
-transitions.extensions.markup
+tfsm.extensions.markup
 -----------------------------
 
 This module extends machines with markup functionality that can be used to retrieve the current machine
@@ -20,7 +20,7 @@ from .nesting import HierarchicalMachine
 
 
 class MarkupMachine(Machine):
-    """Extends transitions.core.Machine with the capability to generate a dictionary representation of itself,
+    """Extends tfsm.core.Machine with the capability to generate a dictionary representation of itself,
     its events, states and models.
     """
 
@@ -99,12 +99,12 @@ class MarkupMachine(Machine):
 
     @property
     def auto_transitions_markup(self) -> bool:
-        """Whether auto transitions should be included in the markup."""
+        """Whether auto tfsm should be included in the markup."""
         return self._auto_transitions_markup
 
     @auto_transitions_markup.setter
     def auto_transitions_markup(self, value: bool) -> None:
-        """Whether auto transitions should be included in the markup."""
+        """Whether auto tfsm should be included in the markup."""
         self._auto_transitions_markup = value
         self._needs_update = True
 
@@ -207,7 +207,7 @@ class MarkupMachine(Machine):
             root[key].append(s_def)
 
     def _convert_transitions(self, root: dict[str, Any]) -> None:
-        root["transitions"] = []
+        root["tfsm"] = []
         for event in self.events.values():
             if self._omit_auto_transitions(event):
                 continue
@@ -222,7 +222,7 @@ class MarkupMachine(Machine):
                         t_def["conditions"] = con
                     if unl:
                         t_def["unless"] = unl
-                    root["transitions"].append(t_def)
+                    root["tfsm"].append(t_def)
 
     def _add_markup_model(self, markup: dict[str, Any]) -> None:
         initial = markup.get("state", None)
@@ -266,7 +266,7 @@ class MarkupMachine(Machine):
 
 
 class HierarchicalMarkupMachine(MarkupMachine, HierarchicalMachine):
-    """Extends transitions.extensions.nesting.HierarchicalMachine with markup capabilities."""
+    """Extends tfsm.extensions.nesting.HierarchicalMachine with markup capabilities."""
 
 
 def rep(func: Any, format_references: Callable[[Any], str] | None = None) -> str | None:

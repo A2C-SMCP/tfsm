@@ -86,11 +86,11 @@ This is a significant release that modernizes the transitions library for Python
 **For users on Python 3.11+**:
 ```bash
 # Old way (still works)
-pip install transitions
+pip install tfsm
 
 # New way (recommended, faster)
 pip install uv
-uv pip install transitions
+uv pip install tfsm
 ```
 
 **For developers**:
@@ -102,7 +102,7 @@ uv pip install -e '.[all]'
 uv run poe test  # or: uv run pytest
 
 # Type checking
-uv run poe typecheck  # or: uv run mypy --config-file mypy.ini --strict transitions
+uv run poe typecheck  # or: uv run mypy --config-file mypy.ini --strict tfsm
 
 # Multi-version testing
 uv run nox

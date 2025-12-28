@@ -1,5 +1,5 @@
 """
-transitions.extensions
+tfsm.extensions
 ----------------------
 
 Additional functionality such as hierarchical (nested) machine support, Graphviz-based diagram creation

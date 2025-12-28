@@ -177,7 +177,8 @@ class DiagramBase(ABC):
 ```python
 from typing import Optional, List, Callable, Union, Any
 from enum import Enum
-from transitions.core import EventData
+from tfsm.core import EventData
+
 
 class State:
     name: Union[str, Enum]
@@ -187,12 +188,12 @@ class State:
     final: bool
 
     def __init__(
-        self,
-        name: Union[str, Enum],
-        on_enter: Optional[Union[str, List[str]]] = None,
-        on_exit: Optional[Union[str, List[str]]] = None,
-        ignore_invalid_triggers: Optional[bool] = None,
-        final: bool = False
+            self,
+            name: Union[str, Enum],
+            on_enter: Optional[Union[str, List[str]]] = None,
+            on_exit: Optional[Union[str, List[str]]] = None,
+            ignore_invalid_triggers: Optional[bool] = None,
+            final: bool = False
     ):
         ...
 ```
@@ -410,7 +411,7 @@ strict_optional = true
 
 **运行类型检查**:
 ```bash
-uv run mypy transitions/
+uv run mypy tfsm/
 ```
 
 #### 6.2 更新 CI/CD
@@ -487,10 +488,10 @@ jobs:
 
 ```bash
 # 运行类型检查
-uv run mypy transitions/
+uv run mypy tfsm/
 
 # 运行测试
-uv run pytest --cov=transitions --cov-report=html
+uv run pytest --cov=tfsm --cov-report=html
 ```
 
 ---
@@ -851,10 +852,10 @@ def nested(*contexts: Any) -> Generator[Tuple[Any, ...], None, None]:
 **开发工作流**:
 ```bash
 # 开发时运行类型检查
-uv run mypy --config-file mypy.ini --strict transitions --watch
+uv run mypy --config-file mypy.ini --strict tfsm --watch
 
 # 提交前检查
-uv run mypy --config-file mypy.ini --strict transitions && uv run pytest
+uv run mypy --config-file mypy.ini --strict tfsm && uv run pytest
 ```
 
 ### 8.6 相关资源

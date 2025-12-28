@@ -1,5 +1,5 @@
 """
-transitions.extensions.diagrams_base
+tfsm.extensions.diagrams_base
 ------------------------------------
 
 The class BaseGraph implements the common ground for Graphviz backends.
@@ -66,7 +66,7 @@ class ContextManagerMachine(Protocol):
 
     @property
     def show_conditions(self) -> bool:
-        """Whether to show conditions in transitions."""
+        """Whether to show conditions in tfsm."""
         ...
 
 
@@ -205,7 +205,7 @@ class BaseGraph(abc.ABC):
         )
 
     def _get_elements(self) -> tuple[list[Any], list[dict[str, Any]]]:
-        """Extract states and transitions from the machine's markup configuration.
+        """Extract states and tfsm from the machine's markup configuration.
         Returns:
             A tuple containing:
                 - List of state objects/dictionaries
@@ -222,11 +222,11 @@ class BaseGraph(abc.ABC):
 
             while queue:
                 prefix, scope = queue.pop(0)
-                for transition in scope.get("transitions", []):
+                for transition in scope.get("tfsm", []):
                     if prefix:
                         tran = copy.copy(transition)
                         tran["source"] = separator.join(prefix + [tran["source"]])
-                        if "dest" in tran:  # don't do this for internal transitions
+                        if "dest" in tran:  # don't do this for internal tfsm
                             tran["dest"] = separator.join(prefix + [tran["dest"]])
                     else:
                         tran = transition

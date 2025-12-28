@@ -1,10 +1,9 @@
 from enum import Enum
 from unittest import TestCase, skipIf
 
-from transitions.core import Machine
-from transitions.extensions.diagrams import GraphMachine, HierarchicalGraphMachine
-from transitions.extensions.nesting import HierarchicalMachine
-
+from tfsm.core import Machine
+from tfsm.extensions.diagrams import GraphMachine, HierarchicalGraphMachine
+from tfsm.extensions.nesting import HierarchicalMachine
 
 try:
     import enum
@@ -12,22 +11,24 @@ except ImportError:
     enum = None  # type: ignore
 
 from .test_core import TYPE_CHECKING
-from .test_pygraphviz import pgv
 from .test_graphviz import pgv as gv
+from .test_pygraphviz import pgv
 
 if TYPE_CHECKING:
-    from typing import Type, List, Union, Dict, Sequence
-    from transitions.core import TransitionConfig
+    from collections.abc import Sequence
+    from typing import Dict, List, Type, Union
+
+    from tfsm.core import TransitionConfig
 
 
 @skipIf(enum is None, "enum is not available")
 class TestEnumsAsStates(TestCase):
-
     def setUp(self):
         class States(enum.Enum):
             RED = 1
             YELLOW = 2
             GREEN = 3
+
         self.machine_cls = Machine
         self.States = States  # type: Type[enum.Enum]
 
@@ -48,8 +49,8 @@ class TestEnumsAsStates(TestCase):
 
     def test_transitions(self):
         m = self.machine_cls(states=self.States, initial=self.States.RED)
-        m.add_transition('switch_to_yellow', self.States.RED, self.States.YELLOW)
-        m.add_transition('switch_to_green', 'YELLOW', 'GREEN')
+        m.add_transition("switch_to_yellow", self.States.RED, self.States.YELLOW)
+        m.add_transition("switch_to_green", "YELLOW", "GREEN")
 
         m.switch_to_yellow()
         assert m.is_YELLOW() is True
@@ -62,19 +63,19 @@ class TestEnumsAsStates(TestCase):
         class States(str, enum.Enum):
             __metaclass__ = enum.EnumMeta
 
-            RED = 'red'
-            YELLOW = 'yellow'
+            RED = "red"
+            YELLOW = "yellow"
 
         m = self.machine_cls(states=States, auto_transitions=False, initial=States.RED)
-        m.add_transition('switch_to_yellow', States.RED, States.YELLOW)
+        m.add_transition("switch_to_yellow", States.RED, States.YELLOW)
 
         m.switch_to_yellow()
         assert m.is_YELLOW() is True
 
     def test_property_initial(self):
         transitions = [
-            {'trigger': 'switch_to_yellow', 'source': self.States.RED, 'dest': self.States.YELLOW},
-            {'trigger': 'switch_to_green', 'source': 'YELLOW', 'dest': 'GREEN'},
+            {"trigger": "switch_to_yellow", "source": self.States.RED, "dest": self.States.YELLOW},
+            {"trigger": "switch_to_green", "source": "YELLOW", "dest": "GREEN"},
         ]  # type: Sequence[TransitionConfig]
 
         m = self.machine_cls(states=self.States, initial=self.States.RED, transitions=transitions)
@@ -93,7 +94,7 @@ class TestEnumsAsStates(TestCase):
         m = self.machine_cls(states=states, initial=state_A)
         assert m.state == self.States.YELLOW
 
-        m.add_transition('advance', state_A, state_B)
+        m.add_transition("advance", state_A, state_B)
         m.advance()
         assert m.state == self.States.GREEN
 
@@ -102,32 +103,32 @@ class TestEnumsAsStates(TestCase):
             ONE = 1
             TWO = 2
 
-        class Stuff(object):
+        class Stuff:
             def __init__(self, machine_cls):
                 self.state = None
                 self.machine = machine_cls(states=States, initial=States.ONE, model=self)
 
-                self.machine.add_transition('advance', States.ONE, States.TWO)
-                self.machine.add_transition('reverse', States.TWO, States.ONE)
-                self.machine.on_enter_TWO('hello')
-                self.machine.on_exit_TWO('goodbye')
+                self.machine.add_transition("advance", States.ONE, States.TWO)
+                self.machine.add_transition("reverse", States.TWO, States.ONE)
+                self.machine.on_enter_TWO("hello")
+                self.machine.on_exit_TWO("goodbye")
 
             def hello(self):
-                self.message = 'Hello'
+                self.message = "Hello"
 
             def goodbye(self):
-                self.message = 'Goodbye'
+                self.message = "Goodbye"
 
         s = Stuff(self.machine_cls)
         s.advance()
 
         assert s.is_TWO()
-        assert s.message == 'Hello'
+        assert s.message == "Hello"
 
         s.reverse()
 
         assert s.is_ONE()
-        assert s.message == 'Goodbye'
+        assert s.message == "Goodbye"
 
     def test_enum_zero(self):
         from enum import IntEnum
@@ -136,10 +137,7 @@ class TestEnumsAsStates(TestCase):
             FOO = 0
             BAR = 1
 
-        transitions = [
-            ['foo', State.FOO, State.BAR],
-            ['bar', State.BAR, State.FOO]
-        ]  # type: Sequence[List[Union[str, Enum]]]
+        transitions = [["foo", State.FOO, State.BAR], ["bar", State.BAR, State.FOO]]  # type: Sequence[List[Union[str, Enum]]]
 
         m = self.machine_cls(states=State, initial=State.FOO, transitions=transitions)
         m.foo()
@@ -153,7 +151,7 @@ class TestEnumsAsStates(TestCase):
         self.assertEqual(3, len(m.get_transitions(dest=self.States.RED)))
         self.assertEqual(1, len(m.get_transitions(source=self.States.RED, dest=self.States.YELLOW)))
         self.assertEqual(9, len(m.get_transitions()))
-        m.add_transition('switch_to_yellow', self.States.RED, self.States.YELLOW)
+        m.add_transition("switch_to_yellow", self.States.RED, self.States.YELLOW)
         self.assertEqual(4, len(m.get_transitions(source=self.States.RED)))
         # we expect two return values. 'switch_to_yellow' and 'to_YELLOW'
         self.assertEqual(2, len(m.get_transitions(source=self.States.RED, dest=self.States.YELLOW)))
@@ -165,13 +163,13 @@ class TestEnumsAsStates(TestCase):
         self.assertEqual(trigger_enum, trigger_name)
 
     def test_may_transition(self):
-        class TrafficLight(object):
+        class TrafficLight:
             pass
 
         t = TrafficLight()
         m = Machine(states=self.States, model=t, initial=self.States.RED, auto_transitions=False)
-        m.add_transition('go', self.States.RED, self.States.GREEN)
-        m.add_transition('stop', self.States.YELLOW, self.States.RED)
+        m.add_transition("go", self.States.RED, self.States.GREEN)
+        m.add_transition("stop", self.States.YELLOW, self.States.RED)
         assert t.may_go()
         assert t.may_trigger("go")
         assert not t.may_stop()
@@ -179,29 +177,26 @@ class TestEnumsAsStates(TestCase):
 
     def test_remove_transition(self):
         m = self.machine_cls(states=self.States, initial=self.States.RED)
-        m.add_transition('switch', self.States.RED, self.States.YELLOW)
-        m.add_transition('switch', self.States.YELLOW, self.States.RED)  # this must be removed
-        m.add_transition('switch', self.States.YELLOW, self.States.GREEN)
+        m.add_transition("switch", self.States.RED, self.States.YELLOW)
+        m.add_transition("switch", self.States.YELLOW, self.States.RED)  # this must be removed
+        m.add_transition("switch", self.States.YELLOW, self.States.GREEN)
 
         m.switch()
         assert m.is_YELLOW() is True
 
-        m.remove_transition('switch', source=self.States.YELLOW, dest=self.States.RED)
+        m.remove_transition("switch", source=self.States.YELLOW, dest=self.States.RED)
         m.switch()
         assert m.is_GREEN() is True
 
 
 @skipIf(enum is None, "enum is not available")
 class TestNestedStateEnums(TestEnumsAsStates):
-
     def setUp(self):
-        super(TestNestedStateEnums, self).setUp()
+        super().setUp()
         self.machine_cls = HierarchicalMachine  # type: Type[HierarchicalMachine]
 
     def test_root_enums(self):
-        states = [self.States.RED, self.States.YELLOW,
-                  {'name': self.States.GREEN, 'children': ['tick', 'tock'], 'initial': 'tick'}] \
-            # type: List[Union[enum.Enum, Dict]]
+        states = [self.States.RED, self.States.YELLOW, {"name": self.States.GREEN, "children": ["tick", "tock"], "initial": "tick"}]  # type: List[Union[enum.Enum, Dict]]
         m = self.machine_cls(states=states, initial=self.States.GREEN)
         self.assertTrue(m.is_GREEN(allow_substates=True))
         self.assertTrue(m.is_GREEN_tick())
@@ -209,11 +204,9 @@ class TestNestedStateEnums(TestEnumsAsStates):
         self.assertTrue(m.state is self.States.RED)
 
     def test_nested_enums(self):
-        states = ['A', self.States.GREEN,
-                  {'name': 'C', 'children': self.States, 'initial': self.States.GREEN}] \
-            # type: List[Union[str, enum.Enum,Dict]]
-        m1 = self.machine_cls(states=states, initial='C')
-        m2 = self.machine_cls(states=states, initial='A')
+        states = ["A", self.States.GREEN, {"name": "C", "children": self.States, "initial": self.States.GREEN}]  # type: List[Union[str, enum.Enum,Dict]]
+        m1 = self.machine_cls(states=states, initial="C")
+        m2 = self.machine_cls(states=states, initial="A")
         self.assertEqual(m1.state, self.States.GREEN)
         self.assertTrue(m1.is_GREEN())  # even though it is actually C_GREEN
         m2.to_GREEN()
@@ -229,7 +222,7 @@ class TestNestedStateEnums(TestEnumsAsStates):
 
     def test_duplicate_states(self):
         with self.assertRaises(ValueError):
-            self.machine_cls(states=['A', 'A'])
+            self.machine_cls(states=["A", "A"])
 
     def test_duplicate_states_from_enum_members(self):
         class Foo(enum.Enum):
@@ -249,19 +242,19 @@ class TestNestedStateEnums(TestEnumsAsStates):
             C = 2
 
         m = self.machine_cls(states=Bar, initial=Bar.C, auto_transitions=False)
-        m.add_transition('go', Bar.C, Foo.A, conditions=lambda: False)
-        trans = m.events['go'].transitions['C']
+        m.add_transition("go", Bar.C, Foo.A, conditions=lambda: False)
+        trans = m.events["go"].transitions["C"]
         self.assertEqual(1, len(trans))
-        self.assertEqual('FOO_A', trans[0].dest)
-        m.add_transition('go', Bar.C, 'FOO_B')
+        self.assertEqual("FOO_A", trans[0].dest)
+        m.add_transition("go", Bar.C, "FOO_B")
         self.assertEqual(2, len(trans))
-        self.assertEqual('FOO_B', trans[1].dest)
+        self.assertEqual("FOO_B", trans[1].dest)
         m.go()
         self.assertTrue(m.is_FOO_B())
-        m.add_transition('go', Foo.B, 'C')
-        trans = m.events['go'].transitions['FOO_B']
+        m.add_transition("go", Foo.B, "C")
+        trans = m.events["go"].transitions["FOO_B"]
         self.assertEqual(1, len(trans))
-        self.assertEqual('C', trans[0].dest)
+        self.assertEqual("C", trans[0].dest)
         m.go()
         self.assertEqual(m.state, Bar.C)
 
@@ -275,10 +268,10 @@ class TestNestedStateEnums(TestEnumsAsStates):
             C = 2
 
         m = self.machine_cls(states=Bar, initial=Bar.C)
-        self.assertEqual(sorted(m.states['FOO'].states.keys()), ['A', 'B'])
-        m.add_transition('go', 'FOO_A', 'C')
-        m.add_transition('go', 'C', 'FOO_B')
-        m.add_transition('foo', Bar.C, Bar.FOO)
+        self.assertEqual(sorted(m.states["FOO"].states.keys()), ["A", "B"])
+        m.add_transition("go", "FOO_A", "C")
+        m.add_transition("go", "C", "FOO_B")
+        m.add_transition("foo", Bar.C, Bar.FOO)
 
         m.to_FOO_A()
         self.assertFalse(m.is_C())
@@ -337,7 +330,7 @@ class TestNestedStateEnums(TestEnumsAsStates):
 
         # changing the separator should make it work
         class DotNestedState(self.machine_cls.state_cls):  # type: ignore
-            separator = '.'
+            separator = "."
 
         # make custom machine use custom state with dot separator
         class DotMachine(self.machine_cls):  # type: ignore
@@ -351,18 +344,19 @@ class TestNestedStateEnums(TestEnumsAsStates):
             NONE = self.States
             UNKNOWN = 2
             POWER = 3
+
         m = self.machine_cls(states=Errors, initial=Errors.NONE.value.RED, auto_transitions=False)
-        m.add_transition('error', Errors.NONE, Errors.UNKNOWN)
-        m.add_transition('outage', [Errors.NONE, Errors.UNKNOWN], Errors.POWER)
-        m.add_transition('reset', '*', self.States.RED)
-        m.add_transition('toggle', self.States.RED, self.States.GREEN)
-        m.add_transition('toggle', self.States.GREEN, self.States.YELLOW)
-        m.add_transition('toggle', self.States.YELLOW, self.States.RED)
+        m.add_transition("error", Errors.NONE, Errors.UNKNOWN)
+        m.add_transition("outage", [Errors.NONE, Errors.UNKNOWN], Errors.POWER)
+        m.add_transition("reset", "*", self.States.RED)
+        m.add_transition("toggle", self.States.RED, self.States.GREEN)
+        m.add_transition("toggle", self.States.GREEN, self.States.YELLOW)
+        m.add_transition("toggle", self.States.YELLOW, self.States.RED)
         self.assertEqual(5, len(m.get_transitions(dest=self.States.RED)))
         self.assertEqual(1, len(m.get_transitions(source=self.States.RED, dest=self.States.RED, delegate=True)))
         self.assertEqual(1, len(m.get_transitions(source=self.States.RED, dest=self.States.GREEN)))
         self.assertEqual(1, len(m.get_transitions(dest=self.States.GREEN)))
-        self.assertEqual(3, len(m.get_transitions(trigger='toggle')))
+        self.assertEqual(3, len(m.get_transitions(trigger="toggle")))
 
     def test_multiple_deeper(self):
 
@@ -402,7 +396,6 @@ try:
     from enum import StrEnum
 
     class TestNestedStateStrEnums(TestNestedStateEnums):
-
         def setUp(self):
             super().setUp()
 
@@ -419,9 +412,8 @@ except ImportError:
 
 @skipIf(enum is None or (pgv is None and gv is None), "enum and (py)graphviz are not available")
 class TestEnumWithGraph(TestEnumsAsStates):
-
     def setUp(self):
-        super(TestEnumWithGraph, self).setUp()
+        super().setUp()
         self.machine_cls = GraphMachine  # type: Type[GraphMachine]
 
     def test_get_graph(self):
@@ -437,9 +429,8 @@ class TestEnumWithGraph(TestEnumsAsStates):
 
 @skipIf(enum is None or (pgv is None and gv is None), "enum and (py)graphviz are not available")
 class TestNestedStateGraphEnums(TestNestedStateEnums):
-
     def setUp(self):
-        super(TestNestedStateGraphEnums, self).setUp()
+        super().setUp()
         self.machine_cls = HierarchicalGraphMachine
 
     def test_invalid_enum_path(self):
@@ -452,5 +443,5 @@ class TestNestedStateGraphEnums(TestNestedStateEnums):
             INVALID = 1
 
         with self.assertRaises(ValueError):
-            transitions = [['go', '*', Invalid.INVALID]]  # type: Sequence[List[Union[str, Enum]]]
+            transitions = [["go", "*", Invalid.INVALID]]  # type: Sequence[List[Union[str, Enum]]]
             self.machine_cls(states=States, transitions=transitions, initial=States.ONE)

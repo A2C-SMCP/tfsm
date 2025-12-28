@@ -78,17 +78,16 @@ They say [a good example is worth](https://www.google.com/webhp?ie=UTF-8#q=%22a+
 Well, "they" probably lie... but here's an example anyway:
 
 ```python
-from transitions import Machine
+from tfsm import Machine
 import random
 
-class NarcolepticSuperhero(object):
 
+class NarcolepticSuperhero(object):
     # Define some states. Most of the time, narcoleptic superheroes are just like
     # everyone else. Except for...
     states = ['asleep', 'hanging out', 'hungry', 'sweaty', 'saving the world']
 
     def __init__(self, name):
-
         # No anonymous superheroes on my watch! Every narcoleptic superhero gets
         # a name. Any name at all. SleepyMan. SlumberGirl. You get the idea.
         self.name = name
@@ -97,14 +96,14 @@ class NarcolepticSuperhero(object):
         self.kittens_rescued = 0
 
         # Initialize the state machine
-        self.machine = Machine(model=self, states=NarcolepticSuperhero.states, initial='asleep')
+        self.machine = Machine(model = self, states = NarcolepticSuperhero.states, initial = 'asleep')
 
-        # Add some transitions. We could also define these using a static list of
+        # Add some tfsm. We could also define these using a static list of
         # dictionaries, as we did with states above, and then pass the list to
-        # the Machine initializer as the transitions= argument.
+        # the Machine initializer as the tfsm= argument.
 
         # At some point, every superhero must rise and shine.
-        self.machine.add_transition(trigger='wake_up', source='asleep', dest='hanging out')
+        self.machine.add_transition(trigger = 'wake_up', source = 'asleep', dest = 'hanging out')
 
         # Superheroes need to keep in shape.
         self.machine.add_transition('work_out', 'hanging out', 'hungry')
@@ -115,17 +114,17 @@ class NarcolepticSuperhero(object):
         # Superheroes are always on call. ALWAYS. But they're not always
         # dressed in work-appropriate clothing.
         self.machine.add_transition('distress_call', '*', 'saving the world',
-                         before='change_into_super_secret_costume')
+                                    before = 'change_into_super_secret_costume')
 
         # When they get off work, they're all sweaty and disgusting. But before
         # they do anything else, they have to meticulously log their latest
         # escapades. Because the legal department says so.
         self.machine.add_transition('complete_mission', 'saving the world', 'sweaty',
-                         after='update_journal')
+                                    after = 'update_journal')
 
         # Sweat is a disorder that can be remedied with water.
         # Unless you've had a particularly long day, in which case... bed time!
-        self.machine.add_transition('clean_up', 'sweaty', 'asleep', conditions=['is_exhausted'])
+        self.machine.add_transition('clean_up', 'sweaty', 'asleep', conditions = ['is_exhausted'])
         self.machine.add_transition('clean_up', 'sweaty', 'hanging out')
 
         # Our NarcolepticSuperhero can fall asleep at pretty much any time.
@@ -229,12 +228,13 @@ lump = Matter()
 You can initialize a (_minimal_) working state machine bound to the model `lump` like this:
 
 ```python
-from transitions import Machine
-machine = Machine(model=lump, states=['solid', 'liquid', 'gas', 'plasma'], initial='solid')
+from tfsm import Machine
+
+machine = Machine(model = lump, states = ['solid', 'liquid', 'gas', 'plasma'], initial = 'solid')
 
 # Lump now has a new state attribute!
 lump.state
->>> 'solid'
+>> > 'solid'
 ```
 
 An alternative is to not explicitly pass a model to the `Machine` initializer:
@@ -258,8 +258,8 @@ Let's try again.
 # The states
 states=['solid', 'liquid', 'gas', 'plasma']
 
-# And some transitions between states. We're lazy, so we'll leave out
-# the inverse phase transitions (freezing, condensation, etc.).
+# And some tfsm between states. We're lazy, so we'll leave out
+# the inverse phase tfsm (freezing, condensation, etc.).
 transitions = [
     { 'trigger': 'melt', 'source': 'solid', 'dest': 'liquid' },
     { 'trigger': 'evaporate', 'source': 'liquid', 'dest': 'gas' },
@@ -306,16 +306,16 @@ The following snippets illustrate several ways to achieve the same goal:
 
 ```python
 # import Machine and State class
-from transitions import Machine, State
+from tfsm import Machine, State
 
 # Create a list of 3 states to pass to the Machine
 # initializer. We can mix types; in this case, we
 # pass one State, one string, and one dict.
 states = [
-    State(name='solid'),
+    State(name = 'solid'),
     'liquid',
-    { 'name': 'gas'}
-    ]
+    {'name': 'gas'}
+]
 machine = Machine(lump, states)
 
 # This alternative example illustrates more explicit
@@ -387,13 +387,14 @@ machine = Machine(lump, states=['A', 'B', 'C'])
 Now, any time `lump` transitions to state `A`, the `on_enter_A()` method defined in the `Matter` class will fire.
 
 You can make use of `on_final` callbacks which will be triggered when a state with `final=True` is entered.
-```python
-from transitions import Machine, State
 
-states = [State(name='idling'),
-          State(name='rescuing_kitten'),
-          State(name='offender_gone', final=True),
-          State(name='offender_caught', final=True)]
+```python
+from tfsm import Machine, State
+
+states = [State(name = 'idling'),
+          State(name = 'rescuing_kitten'),
+          State(name = 'offender_gone', final = True),
+          State(name = 'offender_caught', final = True)]
 
 transitions = [["called", "idling", "rescuing_kitten"],  # we will come when  called
                {"trigger": "intervene",
@@ -406,7 +407,8 @@ transitions = [["called", "idling", "rescuing_kitten"],  # we will come when  ca
 class FinalSuperhero(object):
 
     def __init__(self, speed):
-        self.machine = Machine(self, states=states, transitions=transitions, initial="idling", on_final="claim_success")
+        self.machine = Machine(self, states = states, transitions = transitions, initial = "idling",
+                               on_final = "claim_success")
         self.speed = speed
 
     def offender_is_faster(self, offender_speed):
@@ -416,10 +418,10 @@ class FinalSuperhero(object):
         print("The kitten is safe.")
 
 
-hero = FinalSuperhero(speed=10)  # we are not in shape today
+hero = FinalSuperhero(speed = 10)  # we are not in shape today
 hero.called()
 assert hero.is_rescuing_kitten()
-hero.intervene(offender_speed=15)
+hero.intervene(offender_speed = 15)
 # >>> 'The kitten is safe'
 assert hero.machine.get_state(hero.state).final  # it's over
 assert hero.is_offender_gone()  # maybe next time ...
@@ -466,7 +468,8 @@ If you favour stricter typing and more IDE code completion (or you just can't ty
 
 ```python
 import enum
-from transitions import Machine
+from tfsm import Machine
+
 
 class States(enum.Enum):
     ERROR = 0
@@ -474,14 +477,15 @@ class States(enum.Enum):
     YELLOW = 2
     GREEN = 3
 
+
 transitions = [['proceed', States.RED, States.YELLOW],
                ['proceed', States.YELLOW, States.GREEN],
                ['error', '*', States.ERROR]]
 
-m = Machine(states=States, transitions=transitions, initial=States.RED)
+m = Machine(states = States, transitions = transitions, initial = States.RED)
 assert m.is_RED()
 assert m.state is States.RED
-state = m.get_state(States.RED)  # get transitions.State object
+state = m.get_state(States.RED)  # get tfsm.State object
 print(state.name)  # >>> RED
 m.proceed()
 m.proceed()
@@ -671,14 +675,14 @@ machine.add_ordered_transitions()
 machine.next_state()
 print(machine.state)
 >>> 'B'
-# We can also define a different order of transitions
+# We can also define a different order of tfsm
 machine = Machine(states=states, initial='A')
 machine.add_ordered_transitions(['A', 'C', 'B'])
 machine.next_state()
 print(machine.state)
 >>> 'C'
 # Conditions can be passed to 'add_ordered_transitions' as well
-# If one condition is passed, it will be used for all transitions
+# If one condition is passed, it will be used for all tfsm
 machine = Machine(states=states, initial='A')
 machine.add_ordered_transitions(conditions='check')
 # If a list is passed, it must contain exactly as many elements as the
@@ -694,7 +698,7 @@ machine = Machine(states=states, initial='A')
 machine.add_ordered_transitions(loop=False)
 machine.next_state()
 machine.next_state()
-machine.next_state() # transitions.core.MachineError: "Can't trigger event next_state from state C!"
+machine.next_state() # tfsm.core.MachineError: "Can't trigger event next_state from state C!"
 ```
 
 #### <a name="queued-transitions"></a>Queued transitions
@@ -905,18 +909,22 @@ Callbacks of `finalize_event` will be executed regardless of the success of the 
 Note that if an error occurred it will be attached to `event_data` as `error` and can be retrieved with `send_event=True`.
 
 ```python
-from transitions import Machine
+from tfsm import Machine
+
 
 class Matter(object):
     def raise_error(self, event): raise ValueError("Oh no")
+
     def prepare(self, event): print("I am ready!")
+
     def finalize(self, event): print("Result: ", type(event.error), event.error)
 
-states=['solid', 'liquid', 'gas', 'plasma']
+
+states = ['solid', 'liquid', 'gas', 'plasma']
 
 lump = Matter()
-m = Machine(lump, states, prepare_event='prepare', before_state_change='raise_error',
-            finalize_event='finalize', send_event=True)
+m = Machine(lump, states, prepare_event = 'prepare', before_state_change = 'raise_error',
+            finalize_event = 'finalize', send_event = True)
 try:
     lump.to_gas()
 except ValueError:
@@ -932,18 +940,21 @@ Sometimes things just don't work out as intended and we need to handle exception
 We can pass callbacks to `on_exception` to do this:
 
 ```python
-from transitions import Machine
+from tfsm import Machine
+
 
 class Matter(object):
     def raise_error(self, event): raise ValueError("Oh no")
+
     def handle_error(self, event):
         print("Fixing things ...")
         del event.error  # it did not happen if we cannot see it ...
 
-states=['solid', 'liquid', 'gas', 'plasma']
+
+states = ['solid', 'liquid', 'gas', 'plasma']
 
 lump = Matter()
-m = Machine(lump, states, before_state_change='raise_error', on_exception='handle_error', send_event=True)
+m = Machine(lump, states, before_state_change = 'raise_error', on_exception = 'handle_error', send_event = True)
 try:
     lump.to_gas()
 except ValueError:
@@ -959,7 +970,7 @@ print(lump.state)
 As you have probably already realized, the standard way of passing callables to states, conditions and transitions is by name. When processing callbacks and conditions, `transitions` will use their name to retrieve the related callable from the model. If the method cannot be retrieved and it contains dots, `transitions` will treat the name as a path to a module function and try to import it. Alternatively, you can pass names of properties or attributes. They will be wrapped into functions but cannot receive event data for obvious reasons. You can also pass callables such as (bound) functions directly. As mentioned earlier, you can also pass lists/tuples of callables names to the callback parameters. Callbacks will be executed in the order they were added.
 
 ```python
-from transitions import Machine
+from tfsm import Machine
 from mod import imported_func
 
 import random
@@ -979,10 +990,10 @@ class Model(object):
 
 
 model = Model()
-machine = Machine(model=model, states=['A'], initial='A')
-machine.add_transition('by_name', 'A', 'A', conditions='a_property', after='a_callback')
-machine.add_transition('by_reference', 'A', 'A', unless=['a_property', 'an_attribute'], after=model.a_callback)
-machine.add_transition('imported', 'A', 'A', after='mod.imported_func')
+machine = Machine(model = model, states = ['A'], initial = 'A')
+machine.add_transition('by_name', 'A', 'A', conditions = 'a_property', after = 'a_callback')
+machine.add_transition('by_reference', 'A', 'A', unless = ['a_property', 'an_attribute'], after = model.a_callback)
+machine.add_transition('imported', 'A', 'A', after = 'mod.imported_func')
 
 model.by_name()
 model.by_reference()
@@ -1157,7 +1168,7 @@ lump1.state
 lump2.state
 >>> 'liquid'
 
-# custom events as well as auto transitions can be dispatched to all models
+# custom events as well as auto tfsm can be dispatched to all models
 machine.dispatch("to_plasma")
 
 lump1.state
@@ -1212,8 +1223,8 @@ Transitions includes very rudimentary logging capabilities. A number of events �
 # Set up logging; The basic log level will be DEBUG
 import logging
 logging.basicConfig(level=logging.DEBUG)
-# Set transitions' log level to INFO; DEBUG messages will be omitted
-logging.getLogger('transitions').setLevel(logging.INFO)
+# Set tfsm' log level to INFO; DEBUG messages will be omitted
+logging.getLogger('tfsm').setLevel(logging.INFO)
 
 # Business as usual
 machine = Machine(states=states, transitions=transitions, initial='solid')
@@ -1252,14 +1263,16 @@ As you probably noticed, `transitions` uses some of Python's dynamic features to
 But don't worry!  You can use the machine constructor parameter `model_override` to change how models are decorated. If you set `model_override=True`, `transitions` will only override already defined methods. This prevents new methods from showing up at runtime and also allows you to define which helper methods you want to use.
 
 ```python
-from transitions import Machine
+from tfsm import Machine
+
 
 # Dynamic assignment
 class Model:
     pass
 
+
 model = Model()
-default_machine = Machine(model, states=["A", "B"], transitions=[["go", "A", "B"]], initial="A")
+default_machine = Machine(model, states = ["A", "B"], transitions = [["go", "A", "B"]], initial = "A")
 print(model.__dict__.keys())  # all convenience functions have been assigned
 # >> dict_keys(['trigger', 'to_A', 'may_to_A', 'to_B', 'may_to_B', 'go', 'may_go', 'is_A', 'is_B', 'state'])
 assert model.is_A()  # Unresolved attribute reference 'is_A' for class 'Model'
@@ -1279,7 +1292,8 @@ class PredefinedModel:
 
 
 model = PredefinedModel()
-override_machine = Machine(model, states=["A", "B"], transitions=[["go", "A", "B"]], initial="A", model_override=True)
+override_machine = Machine(model, states = ["A", "B"], transitions = [["go", "A", "B"]], initial = "A",
+                           model_override = True)
 print(model.__dict__.keys())
 # >> dict_keys(['trigger', 'go', 'state'])
 model.trigger("to_B")
@@ -1290,29 +1304,32 @@ If you want to use all the convenience functions and throw some callbacks into t
 The method `generate_base_model` in `transitions` can generate a base model from a machine configuration to help you out with that.
 
 ```python
-from transitions.experimental.utils import generate_base_model
+from tfsm.experimental.utils import generate_base_model
+
 simple_config = {
     "states": ["A", "B"],
-    "transitions": [
+    "tfsm": [
         ["go", "A", "B"],
     ],
     "initial": "A",
     "before_state_change": "call_this",
     "model_override": True,
-} 
+}
 
 class_definition = generate_base_model(simple_config)
 with open("base_model.py", "w") as f:
     f.write(class_definition)
 
 # ... in another file
-from transitions import Machine
+from tfsm import Machine
 from base_model import BaseModel
 
-class Model(BaseModel):  #  call_this will be an abstract method in BaseModel
+
+class Model(BaseModel):  # call_this will be an abstract method in BaseModel
 
     def call_this(self) -> None:
-        # do something  
+# do something  
+
 
 model = Model()
 machine = Machine(model, **simple_config)
@@ -1327,8 +1344,8 @@ As this is still a work in progress, you'll need to create a custom Machine clas
 ```python
 from enum import Enum
 
-from transitions.experimental.utils import with_model_definitions, event, add_transitions, transition
-from transitions import Machine
+from tfsm.experimental.utils import with_model_definitions, event, add_transitions, transition
+from tfsm import Machine
 
 
 class State(Enum):
@@ -1338,16 +1355,15 @@ class State(Enum):
 
 
 class Model:
-
     state: State = State.A
 
-    @add_transitions(transition(source=State.A, dest=State.B), [State.C, State.A])
-    @add_transitions({"source": State.B,  "dest": State.A})
+    @add_transitions(transition(source = State.A, dest = State.B), [State.C, State.A])
+    @add_transitions({"source": State.B, "dest": State.A})
     def foo(self): ...
 
     bar = event(
         {"source": State.B, "dest": State.A, "conditions": lambda: False},
-        transition(source=State.B, dest=State.C)
+        transition(source = State.B, dest = State.C)
     )
 
 
@@ -1357,7 +1373,7 @@ class MyMachine(Machine):
 
 
 model = Model()
-machine = MyMachine(model, states=State, initial=model.state)
+machine = MyMachine(model, states = State, initial = model.state)
 model.foo()
 model.bar()
 assert model.state == State.C
@@ -1379,12 +1395,12 @@ There are two mechanisms to retrieve a state machine instance with the desired f
 The first approach makes use of the convenience `factory` with the four parameters `graph`, `nested`, `locked` or `asyncio` set to `True` if the feature is required:
 
 ```python
-from transitions.extensions import MachineFactory
+from tfsm.extensions import MachineFactory
 
 # create a machine with mixins
-diagram_cls = MachineFactory.get_predefined(graph=True)
-nested_locked_cls = MachineFactory.get_predefined(nested=True, locked=True)
-async_machine_cls = MachineFactory.get_predefined(asyncio=True)
+diagram_cls = MachineFactory.get_predefined(graph = True)
+nested_locked_cls = MachineFactory.get_predefined(nested = True, locked = True)
+async_machine_cls = MachineFactory.get_predefined(asyncio = True)
 
 # create instances from these classes
 # instances can be used like simple machines
@@ -1413,7 +1429,7 @@ However, classes can also be directly imported from `transitions.extensions`. Th
 To use a feature-rich state machine, one could write:
 
 ```python
-from transitions.extensions import LockedHierarchicalGraphMachine as LHGMachine
+from tfsm.extensions import LockedHierarchicalGraphMachine as LHGMachine
 
 machine = LHGMachine(model, states, transitions)
 ```
@@ -1422,37 +1438,38 @@ machine = LHGMachine(model, states, transitions)
 
 Transitions includes an extension module which allows nesting states.
 This allows us to create contexts and to model cases where states are related to certain subtasks in the state machine.
-To create a nested state, either import `NestedState` from transitions or use a dictionary with the initialization arguments `name` and `children`.
+To create a nested state, either import `NestedState` from tfsm or use a dictionary with the initialization arguments `name` and `children`.
 Optionally, `initial` can be used to define a sub state to transit to, when the nested state is entered.
 
 ```python
-from transitions.extensions import HierarchicalMachine
+from tfsm.extensions import HierarchicalMachine
 
-states = ['standing', 'walking', {'name': 'caffeinated', 'children':['dithering', 'running']}]
+states = ['standing', 'walking', {'name': 'caffeinated', 'children': ['dithering', 'running']}]
 transitions = [
-  ['walk', 'standing', 'walking'],
-  ['stop', 'walking', 'standing'],
-  ['drink', '*', 'caffeinated'],
-  ['walk', ['caffeinated', 'caffeinated_dithering'], 'caffeinated_running'],
-  ['relax', 'caffeinated', 'standing']
+    ['walk', 'standing', 'walking'],
+    ['stop', 'walking', 'standing'],
+    ['drink', '*', 'caffeinated'],
+    ['walk', ['caffeinated', 'caffeinated_dithering'], 'caffeinated_running'],
+    ['relax', 'caffeinated', 'standing']
 ]
 
-machine = HierarchicalMachine(states=states, transitions=transitions, initial='standing', ignore_invalid_triggers=True)
+machine = HierarchicalMachine(states = states, transitions = transitions, initial = 'standing',
+                              ignore_invalid_triggers = True)
 
-machine.walk() # Walking now
-machine.stop() # let's stop for a moment
-machine.drink() # coffee time
+machine.walk()  # Walking now
+machine.stop()  # let's stop for a moment
+machine.drink()  # coffee time
 machine.state
->>> 'caffeinated'
-machine.walk() # we have to go faster
+>> > 'caffeinated'
+machine.walk()  # we have to go faster
 machine.state
->>> 'caffeinated_running'
-machine.stop() # can't stop moving!
+>> > 'caffeinated_running'
+machine.stop()  # can't stop moving!
 machine.state
->>> 'caffeinated_running'
-machine.relax() # leave nested state
-machine.state # phew, what a ride
->>> 'standing'
+>> > 'caffeinated_running'
+machine.relax()  # leave nested state
+machine.state  # phew, what a ride
+>> > 'standing'
 # machine.on_enter_caffeinated_running('callback_method')
 ```
 
@@ -1479,9 +1496,10 @@ Note that your previously created state object _must be_ a `NestedState` or a de
 The standard `State` class used in simple `Machine` instances lacks features required for nesting.
 
 ```python
-from transitions.extensions.nesting import HierarchicalMachine, NestedState
-from transitions import  State
-m = HierarchicalMachine(states=['A'], initial='initial')
+from tfsm.extensions.nesting import HierarchicalMachine, NestedState
+from tfsm import State
+
+m = HierarchicalMachine(states = ['A'], initial = 'initial')
 m.add_state('B')  # fine
 m.add_state({'name': 'C'})  # also fine
 m.add_state(NestedState('D'))  # fine as well
@@ -1504,35 +1522,36 @@ You can even use fancy unicode characters if you use Python 3.
 Setting the separator to something else than underscore changes some of the behaviour (auto_transition and setting callbacks) though:
 
 ```python
-from transitions.extensions import HierarchicalMachine
-from transitions.extensions.nesting import NestedState
+from tfsm.extensions import HierarchicalMachine
+from tfsm.extensions.nesting import NestedState
+
 NestedState.separator = '↦'
 states = ['A', 'B',
-  {'name': 'C', 'children':['1', '2',
-    {'name': '3', 'children': ['a', 'b', 'c']}
-  ]}
-]
+          {'name': 'C', 'children': ['1', '2',
+                                     {'name': '3', 'children': ['a', 'b', 'c']}
+                                     ]}
+          ]
 
 transitions = [
     ['reset', 'C', 'A'],
     ['reset', 'C↦2', 'C']  # overwriting parent reset
 ]
 
-# we rely on auto transitions
-machine = HierarchicalMachine(states=states, transitions=transitions, initial='A')
+# we rely on auto tfsm
+machine = HierarchicalMachine(states = states, transitions = transitions, initial = 'A')
 machine.to_B()  # exit state A, enter state B
 machine.to_C()  # exit B, enter C
 machine.to_C.s3.a()  # enter C↦a; enter C↦3↦a;
 machine.state
->>> 'C↦3↦a'
+>> > 'C↦3↦a'
 assert machine.is_C.s3.a()
 machine.to('C↦2')  # not interactive; exit C↦3↦a, exit C↦3, enter C↦2
 machine.reset()  # exit C↦2; reset C has been overwritten by C↦3
 machine.state
->>> 'C'
+>> > 'C'
 machine.reset()  # exit C, enter A
 machine.state
->>> 'A'
+>> > 'A'
 # s.on_enter('C↦3↦a', 'callback_method')
 ```
 
@@ -1568,35 +1587,36 @@ This involves some tweaks based on community feedback.
 To get an idea of processing order and configuration have a look at the following example:
 
 ```python
-from transitions.extensions.nesting import HierarchicalMachine
+from tfsm.extensions.nesting import HierarchicalMachine
 import logging
+
 states = ['A', 'B', {'name': 'C', 'parallel': [{'name': '1', 'children': ['a', 'b', 'c'], 'initial': 'a',
-                                                'transitions': [['go', 'a', 'b']]},
+                                                'tfsm': [['go', 'a', 'b']]},
                                                {'name': '2', 'children': ['x', 'y', 'z'], 'initial': 'z'}],
-                      'transitions': [['go', '2_z', '2_x']]}]
+                     'tfsm': [['go', '2_z', '2_x']]}]
 
 transitions = [['reset', 'C_1_b', 'B']]
-logging.basicConfig(level=logging.INFO)
-machine = HierarchicalMachine(states=states, transitions=transitions, initial='A')
+logging.basicConfig(level = logging.INFO)
+machine = HierarchicalMachine(states = states, transitions = transitions, initial = 'A')
 machine.to_C()
-# INFO:transitions.extensions.nesting:Exited state A
-# INFO:transitions.extensions.nesting:Entered state C
-# INFO:transitions.extensions.nesting:Entered state C_1
-# INFO:transitions.extensions.nesting:Entered state C_2
-# INFO:transitions.extensions.nesting:Entered state C_1_a
-# INFO:transitions.extensions.nesting:Entered state C_2_z
+# INFO:tfsm.extensions.nesting:Exited state A
+# INFO:tfsm.extensions.nesting:Entered state C
+# INFO:tfsm.extensions.nesting:Entered state C_1
+# INFO:tfsm.extensions.nesting:Entered state C_2
+# INFO:tfsm.extensions.nesting:Entered state C_1_a
+# INFO:tfsm.extensions.nesting:Entered state C_2_z
 machine.go()
-# INFO:transitions.extensions.nesting:Exited state C_1_a
-# INFO:transitions.extensions.nesting:Entered state C_1_b
-# INFO:transitions.extensions.nesting:Exited state C_2_z
-# INFO:transitions.extensions.nesting:Entered state C_2_x
+# INFO:tfsm.extensions.nesting:Exited state C_1_a
+# INFO:tfsm.extensions.nesting:Entered state C_1_b
+# INFO:tfsm.extensions.nesting:Exited state C_2_z
+# INFO:tfsm.extensions.nesting:Entered state C_2_x
 machine.reset()
-# INFO:transitions.extensions.nesting:Exited state C_1_b
-# INFO:transitions.extensions.nesting:Exited state C_2_x
-# INFO:transitions.extensions.nesting:Exited state C_1
-# INFO:transitions.extensions.nesting:Exited state C_2
-# INFO:transitions.extensions.nesting:Exited state C
-# INFO:transitions.extensions.nesting:Entered state B
+# INFO:tfsm.extensions.nesting:Exited state C_1_b
+# INFO:tfsm.extensions.nesting:Exited state C_2_x
+# INFO:tfsm.extensions.nesting:Exited state C_1
+# INFO:tfsm.extensions.nesting:Exited state C_2
+# INFO:tfsm.extensions.nesting:Exited state C
+# INFO:tfsm.extensions.nesting:Entered state B
 ```
 
 When using `parallel` instead of `children`, `transitions` will enter all states of the passed list at the same time.
@@ -1621,8 +1641,9 @@ You can make use of `on_final` callbacks either in states or on the HSM itself. 
 
 
 ```python
-from transitions.extensions import HierarchicalMachine
+from tfsm.extensions import HierarchicalMachine
 from functools import partial
+
 
 # We initialize this parallel HSM in state A:
 #        / X
@@ -1636,13 +1657,13 @@ def final_event_raised(name):
 
 
 states = ['A', {'name': 'B', 'parallel': [{'name': 'X', 'final': True, 'on_final': partial(final_event_raised, 'X')},
-                                          {'name': 'Y', 'transitions': [['final_Y', 'yI', 'yII']],
+                                          {'name': 'Y', 'tfsm': [['final_Y', 'yI', 'yII']],
                                            'initial': 'yI',
                                            'on_final': partial(final_event_raised, 'Y'),
                                            'states':
                                                ['yI', {'name': 'yII', 'final': True}]
                                            },
-                                          {'name': 'Z', 'transitions': [['final_Z', 'zI', 'zII']],
+                                          {'name': 'Z', 'tfsm': [['final_Z', 'zI', 'zII']],
                                            'initial': 'zI',
                                            'on_final': partial(final_event_raised, 'Z'),
                                            'states':
@@ -1651,7 +1672,7 @@ states = ['A', {'name': 'B', 'parallel': [{'name': 'X', 'final': True, 'on_final
                                           ],
                 "on_final": partial(final_event_raised, 'B')}]
 
-machine = HierarchicalMachine(states=states, on_final=partial(final_event_raised, 'Machine'), initial='A')
+machine = HierarchicalMachine(states = states, on_final = partial(final_event_raised, 'Machine'), initial = 'A')
 # X will emit a final event right away
 machine.to_B()
 # >>> X is final!
@@ -1735,12 +1756,12 @@ If 'counter' had no 'done' state, we could just add `['done', 'counter_3', 'wait
 In cases where you want states and transitions to be copied by value rather than reference (for instance, if you want to keep the pre-0.8 behaviour) you can do so by creating a `NestedState` and assigning deep copies of the machine's events and states to it.
 
 ```python
-from transitions.extensions.nesting import NestedState
+from tfsm.extensions.nesting import NestedState
 from copy import deepcopy
 
 # ... configuring and creating counter
 
-counting_state = NestedState(name="counting", initial='1')
+counting_state = NestedState(name = "counting", initial = '1')
 counting_state.states = deepcopy(counter.states)
 counting_state.events = deepcopy(counter.events)
 
@@ -1757,7 +1778,7 @@ If both are present, only `children` will be considered.
 counter_conf = {
     'name': 'counting',
     'states': ['1', '2', '3', 'done'],
-    'transitions': [
+    'tfsm': [
         ['increase', '1', '2'],
         ['increase', '2', '3'],
         ['decrease', '3', '2'],
@@ -1771,7 +1792,7 @@ counter_conf = {
 collector_conf = {
     'name': 'collector',
     'states': ['waiting', 'collecting', counter_conf],
-    'transitions': [
+    'tfsm': [
         ['collect', '*', 'collecting'],
         ['wait', '*', 'waiting'],
         ['count', 'collecting', 'counting']
@@ -1799,22 +1820,21 @@ Transitions can generate basic state diagrams displaying all valid transitions b
 The basic diagram support generates a [mermaid](https://mermaid.js.org) state machine definition which can be used with mermaid's [live editor](https://mermaid.live), in markdown files in GitLab or GitHub and other web services.
 For instance, this code:
 ```python
-from transitions.extensions.diagrams import HierarchicalGraphMachine
+from tfsm.extensions.diagrams import HierarchicalGraphMachine
 import pyperclip
 
 states = ['A', 'B', {'name': 'C',
                      'final': True,
                      'parallel': [{'name': '1', 'children': ['a', {"name": "b", "final": True}],
                                    'initial': 'a',
-                                   'transitions': [['go', 'a', 'b']]},
+                                   'tfsm': [['go', 'a', 'b']]},
                                   {'name': '2', 'children': ['a', {"name": "b", "final": True}],
                                    'initial': 'a',
-                                   'transitions': [['go', 'a', 'b']]}]}]
+                                   'tfsm': [['go', 'a', 'b']]}]}]
 transitions = [['reset', 'C', 'A'], ["init", "A", "B"], ["do", "B", "C"]]
 
-
-m = HierarchicalGraphMachine(states=states, transitions=transitions, initial="A", show_conditions=True,
-                             title="Mermaid", graph_engine="mermaid", auto_transitions=False)
+m = HierarchicalGraphMachine(states = states, transitions = transitions, initial = "A", show_conditions = True,
+                             title = "Mermaid", graph_engine = "mermaid", auto_transitions = False)
 m.init()
 
 pyperclip.copy(m.get_graph().draw(None))  # using pyperclip for convenience
@@ -1888,22 +1908,23 @@ Note that this default might change in the future and `pygraphviz` support may b
 With `Model.get_graph()` you can get the current graph or the region of interest (roi) and draw it like this:
 
 ```python
-# import transitions
+# import tfsm
 
-from transitions.extensions import GraphMachine
+from tfsm.extensions import GraphMachine
+
 m = Model()
 # without further arguments pygraphviz will be used
-machine = GraphMachine(model=m, ...)
+machine = GraphMachine(model = m, ...)
 # when you want to use graphviz explicitly
-machine = GraphMachine(model=m, graph_engine="graphviz", ...)
-# in cases where auto transitions should be visible
-machine = GraphMachine(model=m, show_auto_transitions=True, ...)
+machine = GraphMachine(model = m, graph_engine = "graphviz", ...)
+# in cases where auto tfsm should be visible
+machine = GraphMachine(model = m, show_auto_transitions = True, ...)
 
 # draw the whole graph ...
-m.get_graph().draw('my_state_diagram.png', prog='dot')
+m.get_graph().draw('my_state_diagram.png', prog = 'dot')
 # ... or just the region of interest
 # (previous state, active state and all reachable states)
-roi = m.get_graph(show_roi=True).draw('my_state_diagram.png', prog='dot')
+roi = m.get_graph(show_roi = True).draw('my_state_diagram.png', prog = 'dot')
 ```
 
 This produces something like this:
@@ -1931,27 +1952,27 @@ assert result == b.getvalue()
 References and partials passed as callbacks will be resolved as good as possible:
 
 ```python
-from transitions.extensions import GraphMachine
+from tfsm.extensions import GraphMachine
 from functools import partial
 
 
 class Model:
 
-    def clear_state(self, deep=False, force=False):
+    def clear_state(self, deep = False, force = False):
         print("Clearing state ...")
         return True
 
 
 model = Model()
-machine = GraphMachine(model=model, states=['A', 'B', 'C'],
-                       transitions=[
+machine = GraphMachine(model = model, states = ['A', 'B', 'C'],
+                       transitions = [
                            {'trigger': 'clear', 'source': 'B', 'dest': 'A', 'conditions': model.clear_state},
                            {'trigger': 'clear', 'source': 'C', 'dest': 'A',
-                            'conditions': partial(model.clear_state, False, force=True)},
+                            'conditions': partial(model.clear_state, False, force = True)},
                        ],
-                       initial='A', show_conditions=True)
+                       initial = 'A', show_conditions = True)
 
-model.get_graph().draw('my_state_diagram.png', prog='dot')
+model.get_graph().draw('my_state_diagram.png', prog = 'dot')
 ```
 
 This should produce something similar to this:
@@ -1967,28 +1988,28 @@ In cases where event dispatching is done in threads, one can use either `LockedM
 This does not save you from corrupting your machine by tinkering with member variables of your model or state machine.
 
 ```python
-from transitions.extensions import LockedMachine
+from tfsm.extensions import LockedMachine
 from threading import Thread
 import time
 
 states = ['A', 'B', 'C']
-machine = LockedMachine(states=states, initial='A')
+machine = LockedMachine(states = states, initial = 'A')
 
 # let us assume that entering B will take some time
-thread = Thread(target=machine.to_B)
+thread = Thread(target = machine.to_B)
 thread.start()
-time.sleep(0.01) # thread requires some time to start
-machine.to_C() # synchronized access; won't execute before thread is done
+time.sleep(0.01)  # thread requires some time to start
+machine.to_C()  # synchronized access; won't execute before thread is done
 # accessing attributes directly
-thread = Thread(target=machine.to_B)
+thread = Thread(target = machine.to_B)
 thread.start()
-machine.new_attrib = 42 # not synchronized! will mess with execution order
+machine.new_attrib = 42  # not synchronized! will mess with execution order
 ```
 
 Any python context manager can be passed in via the `machine_context` keyword argument:
 
 ```python
-from transitions.extensions import LockedMachine
+from tfsm.extensions import LockedMachine
 from threading import RLock
 
 states = ['A', 'B', 'C']
@@ -1996,7 +2017,7 @@ states = ['A', 'B', 'C']
 lock1 = RLock()
 lock2 = RLock()
 
-machine = LockedMachine(states=states, initial='A', machine_context=[lock1, lock2])
+machine = LockedMachine(states = states, initial = 'A', machine_context = [lock1, lock2])
 ```
 
 Any contexts via `machine_model` will be shared between all models registered with the `Machine`.
@@ -2018,7 +2039,7 @@ You can mix synchronous and asynchronous callbacks if you like but this may have
 Note that events need to be awaited and the event loop must also be handled by you.
 
 ```python
-from transitions.extensions.asyncio import AsyncMachine
+from tfsm.extensions.asyncio import AsyncMachine
 import asyncio
 import time
 
@@ -2043,11 +2064,11 @@ class AsyncModel:
         print(f"I am synchronous again. Execution took {int((time.time() - self.start_time) * 1000)} ms.")
 
 
-transition = dict(trigger="start", source="Start", dest="Done", prepare="prepare_model",
-                  before=["before_change"] * 5 + ["sync_before_change"],
-                  after="after_change")  # execute before function in asynchronously 5 times
+transition = dict(trigger = "start", source = "Start", dest = "Done", prepare = "prepare_model",
+                  before = ["before_change"] * 5 + ["sync_before_change"],
+                  after = "after_change")  # execute before function in asynchronously 5 times
 model = AsyncModel()
-machine = AsyncMachine(model, states=["Start", "Done"], transitions=[transition], initial='Start')
+machine = AsyncMachine(model, states = ["Start", "Done"], transitions = [transition], initial = 'Start')
 
 asyncio.get_event_loop().run_until_complete(model.start())
 # >>> I am synchronous.
@@ -2126,8 +2147,8 @@ If your superheroes need some custom behaviour, you can throw in some extra func
 
 ```python
 from time import sleep
-from transitions import Machine
-from transitions.extensions.states import add_state_features, Tags, Timeout
+from tfsm import Machine
+from tfsm.extensions.states import add_state_features, Tags, Timeout
 
 
 @add_state_features(Tags, Timeout)
@@ -2152,7 +2173,7 @@ transitions = [['done', 'preparing', 'waiting'],
                ['go', 'waiting', 'away']]  # Okay, let' move
 
 hero = SocialSuperhero()
-machine = CustomStateMachine(model=hero, states=states, transitions=transitions, initial='preparing')
+machine = CustomStateMachine(model = hero, states = states, transitions = transitions, initial = 'preparing')
 assert hero.state == 'preparing'  # Preparing for the night shift
 assert machine.get_state(hero.state).is_busy  # We are at home and busy
 hero.done()
@@ -2197,10 +2218,12 @@ This might be a reason to write a dedicated custom state class instead.
 Depending on the chosen state machine, your custom state class may need to provide certain state features. For instance, `HierarchicalMachine` requires your custom state to be an instance of `NestedState` (`State` is not sufficient). To inject your states you can either assign them to your `Machine`'s class attribute `state_cls` or override `Machine.create_state` in case you need some specific procedures done whenever a state is created:
 
 ```python
-from transitions import Machine, State
+from tfsm import Machine, State
+
 
 class MyState(State):
     pass
+
 
 class CustomMachine(Machine):
     # Use MyState as state class
@@ -2220,19 +2243,21 @@ If you want to avoid threads in your `AsyncMachine` entirely, you can replace th
 
 ```python
 import asyncio
-from transitions.extensions.states import add_state_features
-from transitions.extensions.asyncio import AsyncTimeout, AsyncMachine
+from tfsm.extensions.states import add_state_features
+from tfsm.extensions.asyncio import AsyncTimeout, AsyncMachine
+
 
 @add_state_features(AsyncTimeout)
 class TimeoutMachine(AsyncMachine):
     pass
 
+
 states = ['A', {'name': 'B', 'timeout': 0.2, 'on_timeout': 'to_C'}, 'C']
-m = TimeoutMachine(states=states, initial='A', queued=True)  # see remark below
+m = TimeoutMachine(states = states, initial = 'A', queued = True)  # see remark below
 asyncio.run(asyncio.wait([m.to_B(), asyncio.sleep(0.1)]))
 assert m.is_B()  # timeout shouldn't be triggered
 asyncio.run(asyncio.wait([m.to_B(), asyncio.sleep(0.3)]))
-assert m.is_C()   # now timeout should have been processed
+assert m.is_C()  # now timeout should have been processed
 ```
 
 You should consider passing `queued=True` to the `TimeoutMachine` constructor. This will make sure that events are processed sequentially and avoid asynchronous [racing conditions](https://github.com/pytransitions/transitions/issues/459) that may appear when timeout and event happen in proximity.

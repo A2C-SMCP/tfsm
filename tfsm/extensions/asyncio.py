@@ -1,15 +1,15 @@
 """
-transitions.extensions.asyncio
+tfsm.extensions.asyncio
 ------------------------------
 
 This module contains machine, state and event implementations for asynchronous callback processing.
-`AsyncMachine` and `HierarchicalAsyncMachine` use `asyncio` for concurrency. The extension `transitions-anyio`
+`AsyncMachine` and `HierarchicalAsyncMachine` use `asyncio` for concurrency. The extension `tfsm-anyio`
 found at https://github.com/pytransitions/transitions-anyio illustrates how they can be extended to
 make use of other concurrency libraries.
 The module also contains the state mixin `AsyncTimeout` to asynchronously trigger timeout-related callbacks.
 """
 
-# Overriding base methods of states, transitions and machines with async variants is not considered good practise.
+# Overriding base methods of states, tfsm and machines with async variants is not considered good practise.
 # However, the alternative would mean to either increase the complexity of the base classes or copy code fragments
 # and thus increase code complexity and reduce maintainability. If you know a better solution, please file an issue.
 # pylint: disable=invalid-overridden-method
@@ -34,7 +34,7 @@ _LOGGER.addHandler(logging.NullHandler())
 
 
 CANCELLED_MSG = "_transition"
-"""A message passed to a cancelled task to indicate that the cancellation was caused by transitions."""
+"""A message passed to a cancelled task to indicate that the cancellation was caused by tfsm."""
 
 
 class AsyncState(State):
@@ -175,10 +175,10 @@ class AsyncEventData(EventData):
 
 
 class AsyncEvent(Event):
-    """A collection of transitions assigned to the same trigger"""
+    """A collection of tfsm assigned to the same trigger"""
 
     async def trigger(self, model: Any, *args: Any, **kwargs: Any) -> bool:  # type: ignore[override]
-        """Serially execute all transitions that match the current state,
+        """Serially execute all tfsm that match the current state,
         halting as soon as one successfully completes. Note that `AsyncEvent` triggers must be awaited.
         Args:
             args and kwargs: Optional positional or named arguments that will
@@ -223,12 +223,12 @@ class AsyncEvent(Event):
 
 
 class NestedAsyncEvent(NestedEvent):
-    """A collection of transitions assigned to the same trigger.
+    """A collection of tfsm assigned to the same trigger.
     This Event requires a (subclass of) `HierarchicalAsyncMachine`.
     """
 
     async def trigger_nested(self, event_data: EventData) -> bool:  # type: ignore[override]
-        """Serially execute all transitions that match the current state,
+        """Serially execute all tfsm that match the current state,
         halting as soon as one successfully completes. NOTE: This should only
         be called by HierarchicalMachine instances.
         Args:
@@ -270,13 +270,13 @@ class NestedAsyncEvent(NestedEvent):
 
 
 class AsyncMachine(Machine):
-    """Machine manages states, transitions and models. In case it is initialized without a specific model
+    """Machine manages states, tfsm and models. In case it is initialized without a specific model
     (or specifically no model), it will also act as a model itself. Machine takes also care of decorating
-    models with conveniences functions related to added transitions and states during runtime.
+    models with conveniences functions related to added tfsm and states during runtime.
 
     Attributes:
         states (OrderedDict): Collection of all registered states.
-        events (dict): Collection of transitions ordered by trigger/event.
+        events (dict): Collection of tfsm ordered by trigger/event.
         models (list): List of models attached to the machine.
         initial (str): Name of the initial state for new models.
         prepare_event (list): Callbacks executed when an event is triggered.
@@ -284,11 +284,11 @@ class AsyncMachine(Machine):
             Callbacks will be executed BEFORE the custom callbacks assigned to the transition.
         after_state_change (list): Callbacks executed after the transition has been conducted.
             Callbacks will be executed AFTER the custom callbacks assigned to the transition.
-        finalize_event (list): Callbacks will be executed after all transitions callbacks have been executed.
+        finalize_event (list): Callbacks will be executed after all tfsm callbacks have been executed.
             Callbacks mentioned here will also be called if a transition or condition check raised an error.
         on_exception: A callable called when an event raises an exception. If not set,
             the Exception will be raised instead.
-        queued (bool or str): Whether transitions in callbacks should be executed immediately (False) or sequentially.
+        queued (bool or str): Whether tfsm in callbacks should be executed immediately (False) or sequentially.
         send_event (bool): When True, any arguments passed to trigger methods will be wrapped in an EventData
             object, allowing indirect and encapsulated access to data. When False, all positional and keyword
             arguments will be passed directly to all callback methods.
@@ -431,7 +431,7 @@ class AsyncMachine(Machine):
         if msg is not None:
             warnings.warn(
                 "When you call cancel_running_transitions with a custom message "
-                "transitions will re-raise all raised CancelledError. "
+                "tfsm will re-raise all raised CancelledError. "
                 "Make sure to catch them in your code. "
                 "The parameter 'msg' will likely be removed in a future release.",
                 category=DeprecationWarning,
@@ -480,7 +480,7 @@ class AsyncMachine(Machine):
 
     def remove_model(self, model: Any) -> None:
         """Remove a model from the state machine. The model will still contain all previously added triggers
-        and callbacks, but will not receive updates when states or transitions are added to the Machine.
+        and callbacks, but will not receive updates when states or tfsm are added to the Machine.
         If an event queue is used, all queued events of that model will be removed."""
         models = listify(model)
         if self.has_queue == "model":  # type: ignore[comparison-overlap]
@@ -555,7 +555,7 @@ class AsyncMachine(Machine):
 
 
 class HierarchicalAsyncMachine(HierarchicalMachine, AsyncMachine):
-    """Asynchronous variant of transitions.extensions.nesting.HierarchicalMachine.
+    """Asynchronous variant of tfsm.extensions.nesting.HierarchicalMachine.
     An asynchronous hierarchical machine REQUIRES AsyncNestedStates, AsyncNestedEvent and AsyncNestedTransitions
     (or any subclass of it) to operate.
     """
@@ -704,7 +704,7 @@ class AsyncTimeout(AsyncState):
     # TODO: This async override of sync parent method requires a generic-based async/sync separation architecture
     async def enter(self, event_data: "AsyncEventData") -> None:  # type: ignore[override]
         """
-        Extends `transitions.core.State.enter` by starting a timeout timer for
+        Extends `tfsm.core.State.enter` by starting a timeout timer for
         the current model when the state is entered and self.timeout is larger
         than 0.
 
@@ -766,7 +766,7 @@ class AsyncTimeout(AsyncState):
                     raise
             except BaseException as err2:  # pylint: disable=broad-except
                 _LOGGER.error(
-                    "%sHandling timeout exception '%s' caused another exception: %s. Cancel running transitions...",
+                    "%sHandling timeout exception '%s' caused another exception: %s. Cancel running tfsm...",
                     event_data.machine.name,
                     repr(err),
                     repr(err2),

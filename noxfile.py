@@ -1,4 +1,4 @@
-"""Nox sessions for testing the transitions library.
+"""Nox sessions for testing the tfsm library.
 
 This file defines nox test sessions for multiple Python versions.
 Usage:
@@ -7,8 +7,9 @@ Usage:
     nox -s mypy      # Run type checking only
 """
 
-import nox
 import sys
+
+import nox
 
 # Python versions to test against (project requires 3.11+)
 PYTHON_VERSIONS = ["3.11", "3.12", "3.13"]
@@ -33,7 +34,7 @@ def mypy(session: nox.Session) -> None:
     session.run("uv", "pip", "install", "-e", ".[dev,mypy]")
 
     # Run mypy strict checks
-    session.run("uv", "run", "mypy", "--config-file", "mypy.ini", "--strict", "transitions")
+    session.run("uv", "run", "mypy", "--config-file", "mypy.ini", "--strict", "tfsm")
 
     # Also run codestyle tests
     session.run("uv", "run", "pytest", "tests/test_codestyle.py")
@@ -46,10 +47,9 @@ def test(session: nox.Session) -> None:
     session.run("uv", "pip", "install", "-e", ".[test,diagrams]")
 
     # Install graphviz system dependency (Linux only)
-    if sys.platform.startswith('linux') and session.python == "3.13":
+    if sys.platform.startswith("linux") and session.python == "3.13":
         session.run("sudo", "apt-get", "update", silent=True, external=True)
-        session.run("sudo", "apt-get", "install", "-y", "graphviz", "libgraphviz-dev",
-                   silent=True, external=True)
+        session.run("sudo", "apt-get", "install", "-y", "graphviz", "libgraphviz-dev", silent=True, external=True)
 
     # Run pytest with auto-detection of parallel cores
     session.run("uv", "run", "pytest", "-nauto", "--doctest-modules", "tests/")
@@ -72,5 +72,4 @@ def coverage(session: nox.Session) -> None:
     session.run("uv", "pip", "install", "-e", ".[test,diagrams]")
 
     # Run pytest with coverage
-    session.run("uv", "run", "pytest", "-nauto", "--cov=transitions", "--cov-report=html",
-               "--cov-report=term", "tests/")
+    session.run("uv", "run", "pytest", "-nauto", "--cov=tfsm", "--cov-report=html", "--cov-report=term", "tests/")
