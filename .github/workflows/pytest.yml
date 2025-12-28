@@ -44,9 +44,7 @@ jobs:
           which dot
           dot -V
           echo "=== Checking graphviz headers ==="
-          ls -la /usr/include/graphviz/
-          echo "=== Checking pkg-config ==="
-          pkg-config --cflags --libs graphviz
+          ls -la /usr/include/graphviz/ | head -20
       - name: Install dependencies
         run: |
           uv venv --python ${{ matrix.python-version }}
