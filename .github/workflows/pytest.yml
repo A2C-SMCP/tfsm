@@ -16,7 +16,7 @@ jobs:
     strategy:
       fail-fast: false  # 不要因为一个 job 失败就取消其他 job
       matrix:
-        python-version: ["3.11", "3.12", "3.13"]
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
         extras: ["[diagrams]"]
         include:
           - python-version: "3.13"

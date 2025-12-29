@@ -11,12 +11,13 @@ import sys
 
 import nox
 
-# Python versions to test against (project requires 3.11+)
-PYTHON_VERSIONS = ["3.11", "3.12", "3.13"]
+# Python versions to test against (project requires 3.10+)
+PYTHON_VERSIONS = ["3.10", "3.11", "3.12", "3.13"]
 
 # Nox options
 nox.options.stop_on_first_error = False
 nox.options.sessions = ["test", "mypy", "test_no_diagrams"]
+nox.options.default_venv_backend = "uv"  # Use uv for better Python discovery
 
 
 @nox.session(python=False)  # Use system Python
@@ -43,6 +44,12 @@ def mypy(session: nox.Session) -> None:
 @nox.session(python=PYTHON_VERSIONS)
 def test(session: nox.Session) -> None:
     """Run test suite with diagrams support."""
+    # Set graphviz paths for macOS (brew installation)
+    if sys.platform == "darwin":
+        graphviz_prefix = session.run("brew", "--prefix", "graphviz", silent=True, external=True).strip()
+        session.env["CFLAGS"] = f"-I{graphviz_prefix}/include"
+        session.env["LDFLAGS"] = f"-L{graphviz_prefix}/lib"
+
     # Install project dependencies using uv
     session.run("uv", "pip", "install", "-e", ".[test,diagrams]")
 
@@ -52,7 +59,8 @@ def test(session: nox.Session) -> None:
         session.run("sudo", "apt-get", "install", "-y", "graphviz", "libgraphviz-dev", silent=True, external=True)
 
     # Run pytest with auto-detection of parallel cores
-    session.run("uv", "run", "pytest", "-nauto", "--doctest-modules", "tests/")
+    # Use session.bin to ensure we use the nox venv, not project .venv
+    session.run(f"{session.bin}/pytest", "-nauto", "--doctest-modules", "tests/")
 
 
 @nox.session(python=PYTHON_VERSIONS)
@@ -62,14 +70,21 @@ def test_no_diagrams(session: nox.Session) -> None:
     session.run("uv", "pip", "install", "-e", ".[test]")
 
     # Run pytest
-    session.run("uv", "run", "pytest", "-nauto", "tests/")
+    session.run(f"{session.bin}/pytest", "-nauto", "tests/")
 
 
 @nox.session(python=False)  # Use system Python
 def coverage(session: nox.Session) -> None:
     """Run tests with coverage reporting."""
+    # Set graphviz paths for macOS (brew installation)
+    if sys.platform == "darwin":
+        graphviz_prefix = session.run("brew", "--prefix", "graphviz", silent=True, external=True).strip()
+        session.env["CFLAGS"] = f"-I{graphviz_prefix}/include"
+        session.env["LDFLAGS"] = f"-L{graphviz_prefix}/lib"
+
     # Install project dependencies using uv
     session.run("uv", "pip", "install", "-e", ".[test,diagrams]")
 
     # Run pytest with coverage
+    # Note: coverage session uses system Python, so we use uv run
     session.run("uv", "run", "pytest", "-nauto", "--cov=tfsm", "--cov-report=html", "--cov-report=term", "tests/")

@@ -7,7 +7,7 @@ name = "tfsm"
 version = "0.9.5"
 description = "A lightweight, object-oriented Python state machine implementation with many extensions."
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.10"
 license = { text = "MIT" }
 authors = [
     { name = "Tal Yarkoni", email = "tyarkoni@gmail.com" },
@@ -19,6 +19,7 @@ keywords = ["state machine", "statemachine", "fsm", "finite state machine"]
 classifiers = [
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
@@ -119,7 +120,7 @@ dev = [
 ]
 
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.10"
 # Less strict configuration for gradual type adoption
 check_untyped_defs = false
 disallow_untyped_defs = false
