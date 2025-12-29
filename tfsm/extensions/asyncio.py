@@ -2,14 +2,61 @@
 tfsm.extensions.asyncio
 ------------------------------
 
-This module contains machine, state and event implementations for asynchronous callback processing.
-`AsyncMachine` and `HierarchicalAsyncMachine` use `asyncio` for concurrency. The extension `tfsm-anyio`
-found at https://github.com/pytransitions/transitions-anyio illustrates how they can be extended to
-make use of other concurrency libraries.
-The module also contains the state mixin `AsyncTimeout` to asynchronously trigger timeout-related callbacks.
+Asynchronous state machine implementation with async-only enforcement.
+
+This module contains asynchronous variants of the core tfsm classes:
+- AsyncMachine: Async-only state machine with enforced async methods
+- AsyncState: Async-only state with enforced async callbacks
+- AsyncEvent: Async-only event handling
+- AsyncTransition: Async-only transition execution
+- HierarchicalAsyncMachine: Hierarchical async state machine
+
+⚠️ CRITICAL DESIGN DECISION:
+
+All async classes in this module follow an **async-only enforcement strategy**:
+1. Synchronous methods inherited from parent classes are DISABLED
+2. Calling a synchronous method will raise RuntimeError immediately
+3. All async methods MUST be awaited in async contexts
+4. Forgetting to await will create coroutine objects (silent bugs)
+
+Example (AsyncMachine):
+
+    ✅ CORRECT:
+        machine = AsyncMachine(states=['A', 'B'], initial='A')
+        await machine.advance()  # Async execution
+
+    ❌ WRONG - returns coroutine without executing:
+        machine.advance()  # BUG: Creates coroutine, doesn't execute!
+
+    ❌ WRONG - raises RuntimeError:
+        # Sync methods are disabled and will raise immediately
+        # (This is intentional to prevent silent bugs)
+
+This design deliberately violates Liskov Substitution Principle (LSP) for good reason:
+- Prevents hard-to-debug bugs from missing awaits
+- Forces explicit async usage
+- Provides clear error messages for incorrect usage
+- Maintains type safety with type: ignore[override] comments
+
+The alternative (allowing both sync and async) would lead to:
+- Silent bugs from forgotten awaits
+- Confusion about when to use sync vs async
+- Difficult-to-trace coroutine objects in code
+
+For hierarchical state machines, see HierarchicalAsyncMachine.
+For timeout functionality, see AsyncTimeout.
+
+This module uses `asyncio` for concurrency. The extension `tfsm-anyio`
+illustrates how they can be extended to make use of other concurrency libraries.
+
+Note: Overriding base methods with async variants is not considered good practice
+in general. However, the alternative would mean either increasing the complexity
+of the base classes or copying code fragments, which would increase code
+complexity and reduce maintainability. If you know a better solution, please
+file an issue.
 """
 
-# Overriding base methods of states, tfsm and machines with async variants is not considered good practise.
+# Overriding base methods of states, events and machines with async variants is not considered good practice.
 # However, the alternative would mean to either increase the complexity of the base classes or copy code fragments
 # and thus increase code complexity and reduce maintainability. If you know a better solution, please file an issue.
 # pylint: disable=invalid-overridden-method
@@ -38,46 +85,126 @@ CANCELLED_MSG = "_transition"
 
 
 class AsyncState(State):
-    """A persistent representation of a state managed by a ``Machine``. Callback execution is done asynchronously."""
+    """Async state with async-only transition methods.
 
-    async def enter(self, event_data: "AsyncEventData") -> None:  # type: ignore[override]
-        """Triggered when a state is entered.
+    All state transition methods (enter/exit) are async and MUST be awaited.
+    """
+
+    def enter(self, event_data: "AsyncEventData") -> None:  # type: ignore[override]
+        """Synchronous version is disabled in AsyncState!
+
+        ⚠️  Use 'await aenter(...)' instead.
+
+        Raises:
+            RuntimeError: Always raised when called
+        """
+        raise RuntimeError(
+            "AsyncState.enter() is disabled. Use 'await state.aenter(...)' instead."
+        )
+
+    async def aenter(self, event_data: "AsyncEventData") -> None:
+        """Triggered when a state is entered asynchronously.
+
+        ⚠️  CRITICAL: Must be awaited!
+
         Args:
             event_data: (AsyncEventData): The currently processed event.
         """
         _LOGGER.debug("%sEntering state %s. Processing callbacks...", event_data.machine.name, self.name)
-        await event_data.machine.callbacks(self.on_enter, event_data)  # type: ignore[func-returns-value]
+        await event_data.machine.acallbacks(self.on_enter, event_data)
         _LOGGER.info("%sFinished processing state %s enter callbacks.", event_data.machine.name, self.name)
 
-    async def exit(self, event_data: "AsyncEventData") -> None:  # type: ignore[override]
-        """Triggered when a state is exited.
+    def exit(self, event_data: "AsyncEventData") -> None:  # type: ignore[override]
+        """Synchronous version is disabled in AsyncState!
+
+        ⚠️  Use 'await aexit(...)' instead.
+
+        Raises:
+            RuntimeError: Always raised when called
+        """
+        raise RuntimeError(
+            "AsyncState.exit() is disabled. Use 'await state.aexit(...)' instead."
+        )
+
+    async def aexit(self, event_data: "AsyncEventData") -> None:
+        """Triggered when a state is exited asynchronously.
+
+        ⚠️  CRITICAL: Must be awaited!
+
         Args:
             event_data: (AsyncEventData): The currently processed event.
         """
         _LOGGER.debug("%sExiting state %s. Processing callbacks...", event_data.machine.name, self.name)
-        await event_data.machine.callbacks(self.on_exit, event_data)  # type: ignore[func-returns-value]
+        await event_data.machine.acallbacks(self.on_exit, event_data)
         _LOGGER.info("%sFinished processing state %s exit callbacks.", event_data.machine.name, self.name)
 
 
 class NestedAsyncState(NestedState, AsyncState):
     """A state that allows substates. Callback execution is done asynchronously."""
 
-    async def scoped_enter(self, event_data: "AsyncEventData", scope: list[str] | None = None) -> None:  # type: ignore[override]
+    def scoped_enter(self, event_data: "AsyncEventData", scope: list[str] | None = None) -> None:  # type: ignore[override]
+        """Synchronous version is disabled in NestedAsyncState!
+
+        ⚠️  Use 'await ascoped_enter(...)' instead.
+
+        Raises:
+            RuntimeError: Always raised when called
+        """
+        raise RuntimeError(
+            "NestedAsyncState.scoped_enter() is disabled. Use 'await state.ascoped_enter(...)' instead."
+        )
+
+    async def ascoped_enter(self, event_data: "AsyncEventData", scope: list[str] | None = None) -> None:
+        """Enter state with scope asynchronously.
+
+        ⚠️  CRITICAL: Must be awaited!
+        """
         self._scope = scope or []
-        await self.enter(event_data)
+        await self.aenter(event_data)
         self._scope = []
 
-    async def scoped_exit(self, event_data: "AsyncEventData", scope: list[str] | None = None) -> None:  # type: ignore[override]
+    def scoped_exit(self, event_data: "AsyncEventData", scope: list[str] | None = None) -> None:  # type: ignore[override]
+        """Synchronous version is disabled in NestedAsyncState!
+
+        ⚠️  Use 'await ascoped_exit(...)' instead.
+
+        Raises:
+            RuntimeError: Always raised when called
+        """
+        raise RuntimeError(
+            "NestedAsyncState.scoped_exit() is disabled. Use 'await state.ascoped_exit(...)' instead."
+        )
+
+    async def ascoped_exit(self, event_data: "AsyncEventData", scope: list[str] | None = None) -> None:
+        """Exit state with scope asynchronously.
+
+        ⚠️  CRITICAL: Must be awaited!
+        """
         self._scope = scope or []
-        await self.exit(event_data)
+        await self.aexit(event_data)
         self._scope = []
 
 
 class AsyncCondition(Condition):
-    """A helper class to await condition checks in the intended way."""
+    """Async condition with async-only check method."""
 
-    async def check(self, event_data: EventData) -> bool:  # type: ignore[override]
-        """Check whether the condition passes.
+    def check(self, event_data: EventData) -> bool:  # type: ignore[override]
+        """Synchronous version is disabled in AsyncCondition!
+
+        ⚠️  Use 'await acheck(...)' instead.
+
+        Raises:
+            RuntimeError: Always raised when called
+        """
+        raise RuntimeError(
+            "AsyncCondition.check() is disabled. Use 'await condition.acheck(...)' instead."
+        )
+
+    async def acheck(self, event_data: EventData) -> bool:
+        """Check whether the condition passes asynchronously.
+
+        ⚠️  CRITICAL: Must be awaited!
+
         Args:
             event_data (EventData): An EventData instance to pass to the
                 condition (if event sending is enabled) or to extract arguments
@@ -94,80 +221,356 @@ class AsyncCondition(Condition):
 
 
 class AsyncTransition(Transition):
-    """Representation of an asynchronous transition managed by a ``AsyncMachine`` instance."""
+    """Async transition with async-only execution methods.
+
+    All transition methods (execute/_eval_conditions/_change_state) are async and MUST be awaited.
+    """
 
     condition_cls = AsyncCondition
 
-    async def _eval_conditions(self, event_data: EventData) -> bool:  # type: ignore[override]
-        res = await event_data.machine.await_all([partial(cond.check, event_data) for cond in self.conditions])
+    def _eval_conditions(self, event_data: EventData) -> bool:  # type: ignore[override]
+        """Synchronous version is disabled in AsyncTransition!
+
+        ⚠️  Use 'await _aeval_conditions(...)' instead.
+
+        Raises:
+            RuntimeError: Always raised when called
+        """
+        raise RuntimeError(
+            "AsyncTransition._eval_conditions() is disabled. Use 'await transition._aeval_conditions(...)' instead."
+        )
+
+    async def _aeval_conditions(self, event_data: EventData) -> bool:
+        """Evaluate transition conditions asynchronously.
+
+        ⚠️  CRITICAL: Must be awaited!
+        """
+        res = await event_data.machine.await_all([partial(cond.acheck, event_data) for cond in self.conditions])
         if not all(res):
             _LOGGER.debug("%sTransition condition failed: Transition halted.", event_data.machine.name)
             return False
         return True
 
-    async def execute(self, event_data: EventData) -> bool:  # type: ignore[override]
-        """Executes the transition.
+    def execute(self, event_data: EventData) -> bool:  # type: ignore[override]
+        """Synchronous version is disabled in AsyncTransition!
+
+        ⚠️  Use 'await aexecute(...)' instead.
+
+        Raises:
+            RuntimeError: Always raised when called
+        """
+        raise RuntimeError(
+            "AsyncTransition.execute() is disabled. Use 'await transition.aexecute(...)' instead."
+        )
+
+    async def aexecute(self, event_data: EventData) -> bool:
+        """Execute the transition asynchronously.
+
+        ⚠️  CRITICAL: Must be awaited!
+
         Args:
             event_data (EventData): An instance of class EventData.
-        Returns: boolean indicating whether or not the transition was
-            successfully executed (True if successful, False if not).
+        Returns:
+            bool: Boolean indicating whether or not the transition was successfully executed (True if successful, False if not).
         """
         _LOGGER.debug("%sInitiating transition from state %s to state %s...", event_data.machine.name, self.source, self.dest)
 
-        await event_data.machine.callbacks(self.prepare, event_data)  # type: ignore[func-returns-value]
+        await event_data.machine.acallbacks(self.prepare, event_data)
         _LOGGER.debug("%sExecuted callbacks before conditions.", event_data.machine.name)
 
-        if not await self._eval_conditions(event_data):
+        if not await self._aeval_conditions(event_data):
             return False
 
         machine = event_data.machine
         # cancel running tasks since the transition will happen
         await machine.cancel_running_transitions(event_data.model)
 
-        await event_data.machine.callbacks(event_data.machine.before_state_change, event_data)  # type: ignore[func-returns-value]
-        await event_data.machine.callbacks(self.before, event_data)  # type: ignore[func-returns-value]
+        await event_data.machine.acallbacks(event_data.machine.before_state_change, event_data)
+        await event_data.machine.acallbacks(self.before, event_data)
         _LOGGER.debug("%sExecuted callback before transition.", event_data.machine.name)
 
         if self.dest is not None:  # if self.dest is None this is an internal transition with no actual state change
-            await self._change_state(event_data)
+            await self._achange_state(event_data)
 
-        await event_data.machine.callbacks(self.after, event_data)  # type: ignore[func-returns-value]
-        await event_data.machine.callbacks(event_data.machine.after_state_change, event_data)  # type: ignore[func-returns-value]
+        await event_data.machine.acallbacks(self.after, event_data)
+        await event_data.machine.acallbacks(event_data.machine.after_state_change, event_data)
         _LOGGER.debug("%sExecuted callback after transition.", event_data.machine.name)
         return True
 
-    async def _change_state(self, event_data: EventData) -> None:  # type: ignore[override]
+    def _change_state(self, event_data: EventData) -> None:  # type: ignore[override]
+        """Synchronous version is disabled in AsyncTransition!
+
+        ⚠️  Use 'await _achange_state(...)' instead.
+
+        Raises:
+            RuntimeError: Always raised when called
+        """
+        raise RuntimeError(
+            "AsyncTransition._change_state() is disabled. Use 'await transition._achange_state(...)' instead."
+        )
+
+    async def _achange_state(self, event_data: EventData) -> None:
+        """Change state asynchronously.
+
+        ⚠️  CRITICAL: Must be awaited!
+        """
         if hasattr(event_data.machine, "model_graphs"):
             graph = event_data.machine.model_graphs[id(event_data.model)]
             graph.reset_styling()
             graph.set_previous_transition(self.source, self.dest)
-        await event_data.machine.get_state(self.source).exit(event_data)  # type: ignore[func-returns-value]
+        await event_data.machine.get_state(self.source).aexit(event_data)
         event_data.machine.set_state(self.dest, event_data.model)  # type: ignore[arg-type]
         event_data.update(getattr(event_data.model, event_data.machine.model_attribute))
         dest = event_data.machine.get_state(self.dest)  # type: ignore[arg-type]
-        await dest.enter(event_data)  # type: ignore[func-returns-value]
+        await dest.aenter(event_data)
         if dest.final:
-            await event_data.machine.callbacks(event_data.machine.on_final, event_data)  # type: ignore[func-returns-value]
+            await event_data.machine.acallbacks(event_data.machine.on_final, event_data)
 
 
 class NestedAsyncTransition(AsyncTransition, NestedTransition):
-    """Representation of an asynchronous transition managed by a ``HierarchicalMachine`` instance."""
+    """Representation of an asynchronous transition managed by a ``HierarchicalAsyncMachine`` instance."""
 
-    async def _change_state(self, event_data: EventData) -> None:  # type: ignore[override]
+    def _change_state(self, event_data: EventData) -> None:  # type: ignore[override]
+        """Synchronous version is disabled in NestedAsyncTransition!
+
+        ⚠️  Use 'await _achange_state(...)' instead.
+
+        Raises:
+            RuntimeError: Always raised when called
+        """
+        raise RuntimeError(
+            "NestedAsyncTransition._change_state() is disabled. Use 'await transition._achange_state(...)' instead."
+        )
+
+    async def _achange_state(self, event_data: EventData) -> None:
+        """Change state asynchronously for nested state machines.
+
+        ⚠️  CRITICAL: Must be awaited!
+        """
         if hasattr(event_data.machine, "model_graphs"):
             graph = event_data.machine.model_graphs[id(event_data.model)]
             graph.reset_styling()
             graph.set_previous_transition(self.source, self.dest)
-        state_tree, exit_partials, enter_partials = self._resolve_transition(event_data)  # type: ignore[arg-type]
+
+        state_tree, exit_partials, enter_partials = await self._aresolve_transition(event_data)  # type: ignore[arg-type]
         for func in exit_partials:
             await func()
         self._update_model(event_data, state_tree)  # type: ignore[arg-type]
         for func in enter_partials:
             await func()
         with event_data.machine():  # type: ignore[operator]
-            on_final_cbs, _ = self._final_check(event_data, state_tree, enter_partials)  # type: ignore[arg-type]
+            on_final_cbs, _ = await self._afinal_check(event_data, state_tree, enter_partials)  # type: ignore[arg-type]
             for on_final_cb in on_final_cbs:
                 await on_final_cb()
+
+    def _resolve_transition(
+        self, event_data: "AsyncEventData"
+    ) -> tuple[dict[str, Any], Any, Any]:  # type: ignore[override]
+        """Synchronous version is disabled in NestedAsyncTransition!
+
+        ⚠️  Use 'await _aresolve_transition(...)' instead.
+
+        Raises:
+            RuntimeError: Always raised when called
+        """
+        raise RuntimeError(
+            "NestedAsyncTransition._resolve_transition() is disabled. Use 'await transition._aresolve_transition(...)' instead."
+        )
+
+    async def _aresolve_transition(
+        self, event_data: "AsyncEventData"
+    ) -> tuple[dict[str, Any], list[Any], list[Any]]:
+        """Async version of _resolve_transition.
+
+        Creates async partial functions for scoped_enter and scoped_exit.
+
+        ⚠️  CRITICAL: Must be awaited!
+        """
+        # Convert dest to string if it's an Enum
+        dest_str = self.dest if isinstance(self.dest, str) else str(self.dest)
+        dst_name_path = dest_str.split(event_data.machine.state_cls.separator)  # type: ignore[attr-defined]
+        _ = event_data.machine.get_state(dst_name_path[0] if len(dst_name_path) == 1 else dst_name_path)  # type: ignore[arg-type]
+        state_tree = event_data.machine.build_state_tree(
+            listify(getattr(event_data.model, event_data.machine.model_attribute)),
+            event_data.machine.state_cls.separator,  # type: ignore[attr-defined]
+        )
+
+        scope = event_data.machine.get_global_name(join=False)
+        tmp_tree = state_tree.get(dst_name_path[0], None)
+        root = []
+        while tmp_tree is not None:
+            root.append(dst_name_path.pop(0))
+            tmp_tree = tmp_tree.get(dst_name_path[0], None) if len(dst_name_path) > 0 else None
+
+        # when destination is empty this means we are already in the state we want to enter
+        if not dst_name_path:
+            dst_name_path = [root.pop()]
+
+        scoped_tree = reduce(dict.get, scope + root, state_tree)
+
+        # if our scope is a parallel state we need to narrow down the exit scope to the targeted sibling
+        if len(scoped_tree) > 1:
+            exit_scope = {dst_name_path[0]: scoped_tree.get(dst_name_path[0])}
+        else:
+            exit_scope = scoped_tree
+
+        exit_partials = [
+            partial(
+                event_data.machine.get_state(root + state_name).ascoped_exit,  # type: ignore[attr-defined]
+                event_data,
+                scope + root + state_name[:-1],
+            )
+            for state_name in resolve_order(exit_scope)
+        ]
+
+        new_states, enter_partials = await self._aenter_nested(root, dst_name_path, scope + root, event_data)
+
+        # we reset/clear the whole branch if it is scoped, otherwise only reset the sibling
+        if exit_scope == scoped_tree:
+            scoped_tree.clear()
+        for new_key, value in new_states.items():
+            scoped_tree[new_key] = value
+            break
+
+        return state_tree, exit_partials, enter_partials
+
+    async def _aenter_nested(
+        self, root: list[str], dest: list[str], prefix_path: list[str], event_data: "AsyncEventData"
+    ) -> tuple[dict[str, Any], list[Any]]:
+        """Async version of _enter_nested.
+
+        Creates async partial functions for scoped_enter.
+
+        ⚠️  CRITICAL: Must be awaited!
+        """
+        if root:
+            state_name = root.pop(0)
+            with event_data.machine(state_name):  # type: ignore[operator]
+                return await self._aenter_nested(root, dest, prefix_path, event_data)
+        elif dest:
+            new_states: dict[str, Any] = {}
+            state_name = dest.pop(0)
+            # Capture state and prefix for closure BEFORE entering context
+            prefix_copy = prefix_path  # type: ignore[assignment]
+            with event_data.machine(state_name):  # type: ignore[operator]
+                # Capture the scoped state's ascoped_enter method for use in wrapper
+                scoped_ascoped_enter = event_data.machine.scoped.ascoped_enter  # type: ignore[attr-defined]
+                new_states[state_name], new_enter = await self._aenter_nested([], dest, prefix_path + [state_name], event_data)  # type: ignore[assignment]
+            # Create async wrapper for scoped_enter using captured method
+            async def _scoped_enter_wrapper() -> None:
+                """Async wrapper for scoped_enter."""
+                await scoped_ascoped_enter(event_data, prefix_copy)
+
+            # Store method reference for comparison in _afinal_check (like partial.func)
+            _scoped_enter_wrapper.func = scoped_ascoped_enter  # type: ignore[attr-defined]
+
+            enter_partials = [_scoped_enter_wrapper] + new_enter
+            return new_states, enter_partials
+        elif event_data.machine.scoped.initial:
+            new_states_2: dict[str, Any] = {}
+            enter_partials = []
+            queue: list[tuple[Any, list[str], list[Any]]] = []
+            prefix = prefix_path
+            scoped_tree: dict[str, Any] = new_states_2
+            initial_names = [i.name if hasattr(i, "name") else i for i in listify(event_data.machine.scoped.initial)]  # type: ignore[attr-defined]
+            initial_states = [event_data.machine.scoped.states[n] for n in initial_names]
+            while True:
+                event_data.scope = prefix
+                for state in initial_states:
+                    # Capture state's ascoped_enter method and prefix for closure
+                    state_ascoped_enter = state.ascoped_enter  # type: ignore[attr-defined]
+                    prefix_copy = prefix  # Capture prefix for closure
+
+                    async def _make_wrapper() -> None:
+                        """Async wrapper for scoped_enter."""
+                        await state_ascoped_enter(event_data, prefix_copy)
+
+                    # Store method reference for comparison in _afinal_check (like partial.func)
+                    _make_wrapper.func = state_ascoped_enter  # type: ignore[attr-defined]
+
+                    enter_partials.append(_make_wrapper)
+                    scoped_tree[state.name] = {}  # type: ignore[index]
+                    if state.initial:
+                        queue.append((
+                            scoped_tree[state.name],
+                            prefix + [state.name],  # type: ignore[list-item]
+                            [state.states[i.name] if hasattr(i, "name") else state.states[i] for i in listify(state.initial)],
+                        ))
+                if not queue:
+                    break
+                scoped_tree, prefix, initial_states = queue.pop(0)  # type: ignore[misc]
+
+            return new_states_2, enter_partials
+        else:
+            return {}, []
+
+    async def _afinal_check(
+        self, event_data: "AsyncEventData", state_tree: dict[str, Any], enter_partials: list[Any]
+    ) -> tuple[list[Any], bool]:
+        """Async version of _final_check.
+
+        ⚠️  CRITICAL: Must be awaited!
+        """
+        on_final_cbs = []
+        is_final = False
+        # processes states with children
+        if state_tree:
+            all_children_final = True
+            # For parallel states, we need to stay in the parent context
+            # Don't use asyncio.gather here as it would execute concurrently
+            # Instead, process sequentially to maintain proper scope
+            for state in state_tree:
+                child_cbs, child_final = await self._afinal_check_nested(state, event_data, state_tree[state], enter_partials)
+                # if one child is not considered final, processing can stop
+                if not child_final:
+                    all_children_final = False
+                    # if one child has recently transitioned to a final state, we need to update all parents
+                on_final_cbs.extend(child_cbs)
+            # if and only if all other children are also in a final state and a child has recently reached a final
+            # state OR the scoped state has just been entered, trigger callbacks
+            if all_children_final:
+                scoped_state = event_data.machine.scoped  # type: ignore[attr-defined]
+                scoped_entered = any(hasattr(scoped_state, 'ascoped_enter') and scoped_state.ascoped_enter == getattr(part, 'func', None) for part in enter_partials)
+                if on_final_cbs or scoped_entered:
+                    # Use scoped state's on_final (which may be machine.on_final at top level)
+                    if hasattr(scoped_state, 'on_final') and scoped_state.on_final:
+                        on_final_cbs.append(partial(event_data.machine.acallbacks, scoped_state.on_final, event_data))
+                is_final = True
+        # if a state is a leaf state OR has children not in a final state
+        elif getattr(event_data.machine.scoped, "final", False):
+            # if the state itself is considered final and has recently been entered trigger callbacks
+            # thus, a state with non-final children may still trigger callbacks if itself is considered final
+            scoped_state = event_data.machine.scoped  # type: ignore[attr-defined]
+            scoped_entered = any(hasattr(scoped_state, 'ascoped_enter') and scoped_state.ascoped_enter == getattr(part, 'func', None) for part in enter_partials)
+            if scoped_entered:
+                # Use scoped state's on_final (even if empty, like original code)
+                if hasattr(scoped_state, 'on_final'):
+                    on_final_cbs.append(partial(event_data.machine.acallbacks, scoped_state.on_final, event_data))
+            is_final = True
+        return on_final_cbs, is_final
+
+    async def _afinal_check_nested(
+        self, state: str, event_data: "AsyncEventData", state_tree: dict[str, Any], enter_partials: list[Any]
+    ) -> tuple[list[Any], bool]:
+        """Async version of _final_check_nested.
+
+        ⚠️  CRITICAL: Must be awaited!
+        """
+        # Check if 'state' is a top-level state (can be accessed directly)
+        # or a nested state (needs parent context)
+        try:
+            # Try to get the state - if it's a top-level state, this will succeed
+            state_obj = event_data.machine.states.get(state, None)
+            if state_obj is not None:
+                # Top-level state, use normal context switching
+                with event_data.machine(state):  # type: ignore[operator]
+                    return await self._afinal_check(event_data, state_tree, enter_partials)
+            else:
+                # Nested state (child of parallel state), stay in current scope
+                return await self._afinal_check(event_data, state_tree, enter_partials)
+        except Exception:
+            # If anything goes wrong, stay in current scope
+            return await self._afinal_check(event_data, state_tree, enter_partials)
 
 
 class AsyncEventData(EventData):
@@ -175,66 +578,131 @@ class AsyncEventData(EventData):
 
 
 class AsyncEvent(Event):
-    """A collection of tfsm assigned to the same trigger"""
+    """Async event with async-only execution methods.
 
-    async def trigger(self, model: Any, *args: Any, **kwargs: Any) -> bool:  # type: ignore[override]
-        """Serially execute all tfsm that match the current state,
-        halting as soon as one successfully completes. Note that `AsyncEvent` triggers must be awaited.
+    All event processing methods (trigger/_trigger/_process) are async and MUST be awaited.
+    """
+
+    def trigger(self, model: Any, *args: Any, **kwargs: Any) -> bool:  # type: ignore[override]
+        """Synchronous version is disabled in AsyncEvent!
+
+        ⚠️  Use 'await atrigger(...)' instead.
+
+        Raises:
+            RuntimeError: Always raised when called
+        """
+        raise RuntimeError(
+            "AsyncEvent.trigger() is disabled. Use 'await event.atrigger(...)' instead."
+        )
+
+    async def atrigger(self, model: Any, *args: Any, **kwargs: Any) -> bool:
+        """Serially execute all transitions that match the current state asynchronously.
+
+        ⚠️  CRITICAL: Must be awaited!
+
         Args:
             args and kwargs: Optional positional or named arguments that will
                 be passed onto the EventData object, enabling arbitrary state
                 information to be passed on to downstream triggered functions.
-        Returns: boolean indicating whether or not a transition was
-            successfully executed (True if successful, False if not).
+        Returns:
+            bool: Boolean indicating whether or not a transition was successfully executed (True if successful, False if not).
         """
-        func = partial(self._trigger, EventData(None, self, self.machine, model, args=args, kwargs=kwargs))
+        func = partial(self._atrigger, EventData(None, self, self.machine, model, args=args, kwargs=kwargs))
         return await self.machine.process_context(func, model)  # type: ignore[no-any-return]
 
-    async def _trigger(self, event_data: EventData) -> bool:  # type: ignore[override]
+    def _trigger(self, event_data: EventData) -> bool:  # type: ignore[override]
+        """Synchronous version is disabled in AsyncEvent!
+
+        ⚠️  Use 'await _atrigger(...)' instead.
+
+        Raises:
+            RuntimeError: Always raised when called
+        """
+        raise RuntimeError(
+            "AsyncEvent._trigger() is disabled. Use 'await event._atrigger(...)' instead."
+        )
+
+    async def _atrigger(self, event_data: EventData) -> bool:
+        """Internal trigger function (async).
+
+        ⚠️  CRITICAL: Must be awaited!
+        """
         event_data.state = self.machine.get_state(getattr(event_data.model, self.machine.model_attribute))
         try:
             if self._is_valid_source(event_data.state):
-                await self._process(event_data)
+                await self._aprocess(event_data)
         except BaseException as err:  # pylint: disable=broad-except; Exception will be handled elsewhere
             _LOGGER.error(
                 "%sException was raised while processing the trigger '%s': %s", self.machine.name, event_data.event.name, repr(err)
             )
             event_data.error = err  # type: ignore[assignment]
             if self.machine.on_exception:
-                await self.machine.callbacks(self.machine.on_exception, event_data)  # type: ignore[func-returns-value]
+                await self.machine.acallbacks(self.machine.on_exception, event_data)
             else:
                 raise
         finally:
             try:
-                await self.machine.callbacks(self.machine.finalize_event, event_data)  # type: ignore[func-returns-value]
+                await self.machine.acallbacks(self.machine.finalize_event, event_data)
                 _LOGGER.debug("%sExecuted machine finalize callbacks", self.machine.name)
             except BaseException as err:  # pylint: disable=broad-except; Exception will be handled elsewhere
                 _LOGGER.error("%sWhile executing finalize callbacks a %s occurred: %s.", self.machine.name, type(err).__name__, str(err))
         return event_data.result
 
-    async def _process(self, event_data: EventData) -> None:  # type: ignore[override]
-        await self.machine.callbacks(self.machine.prepare_event, event_data)  # type: ignore[func-returns-value]
+    def _process(self, event_data: EventData) -> None:  # type: ignore[override]
+        """Synchronous version is disabled in AsyncEvent!
+
+        ⚠️  Use 'await _aprocess(...)' instead.
+
+        Raises:
+            RuntimeError: Always raised when called
+        """
+        raise RuntimeError(
+            "AsyncEvent._process() is disabled. Use 'await event._aprocess(...)' instead."
+        )
+
+    async def _aprocess(self, event_data: EventData) -> None:
+        """Process event transitions (async).
+
+        ⚠️  CRITICAL: Must be awaited!
+        """
+        await self.machine.acallbacks(self.machine.prepare_event, event_data)
         _LOGGER.debug("%sExecuted machine preparation callbacks before conditions.", self.machine.name)
         for trans in self.transitions[event_data.state.name]:  # type: ignore[union-attr]
             event_data.transition = trans
-            event_data.result = await trans.execute(event_data)  # type: ignore[misc]
+            event_data.result = await trans.aexecute(event_data)  # type: ignore[misc]
             if event_data.result:
                 break
 
 
 class NestedAsyncEvent(NestedEvent):
-    """A collection of tfsm assigned to the same trigger.
+    """A collection of transitions assigned to the same trigger.
+
     This Event requires a (subclass of) `HierarchicalAsyncMachine`.
     """
 
-    async def trigger_nested(self, event_data: EventData) -> bool:  # type: ignore[override]
-        """Serially execute all tfsm that match the current state,
-        halting as soon as one successfully completes. NOTE: This should only
-        be called by HierarchicalMachine instances.
+    def trigger_nested(self, event_data: EventData) -> bool:  # type: ignore[override]
+        """Synchronous version is disabled in NestedAsyncEvent!
+
+        ⚠️  Use 'await atrigger_nested(...)' instead.
+
+        Raises:
+            RuntimeError: Always raised when called
+        """
+        raise RuntimeError(
+            "NestedAsyncEvent.trigger_nested() is disabled. Use 'await event.atrigger_nested(...)' instead."
+        )
+
+    async def atrigger_nested(self, event_data: EventData) -> bool:
+        """Serially execute all transitions that match the current state asynchronously.
+
+        ⚠️  CRITICAL: Must be awaited!
+
+        NOTE: This should only be called by HierarchicalAsyncMachine instances.
+
         Args:
             event_data (AsyncEventData): The currently processed event.
-        Returns: boolean indicating whether or not a transition was
-            successfully executed (True if successful, False if not).
+        Returns:
+            bool: Boolean indicating whether or not a transition was successfully executed (True if successful, False if not).
         """
         machine = event_data.machine
         model = event_data.model
@@ -249,7 +717,7 @@ class NestedAsyncEvent(NestedEvent):
                 event_data.state = machine.get_state(state_name)
                 event_data.source_name = state_name  # type: ignore[attr-defined]
                 event_data.source_path = copy.copy(state_path)  # type: ignore[attr-defined]
-                await self._process(event_data)
+                await self._aprocess(event_data)
                 if event_data.result:
                     elems = state_path
                     while elems:
@@ -257,47 +725,86 @@ class NestedAsyncEvent(NestedEvent):
                         elems.pop()
         return event_data.result
 
-    async def _process(self, event_data: EventData) -> None:  # type: ignore[override]
+    def _process(self, event_data: EventData) -> None:  # type: ignore[override]
+        """Synchronous version is disabled in NestedAsyncEvent!
+
+        ⚠️  Use 'await _aprocess(...)' instead.
+
+        Raises:
+            RuntimeError: Always raised when called
+        """
+        raise RuntimeError(
+            "NestedAsyncEvent._process() is disabled. Use 'await event._aprocess(...)' instead."
+        )
+
+    async def _aprocess(self, event_data: EventData) -> None:
+        """Process event transitions for nested state machines (async).
+
+        ⚠️  CRITICAL: Must be awaited!
+        """
         machine = event_data.machine
-        await machine.callbacks(event_data.machine.prepare_event, event_data)  # type: ignore[func-returns-value]
+        await machine.acallbacks(event_data.machine.prepare_event, event_data)
         _LOGGER.debug("%sExecuted machine preparation callbacks before conditions.", machine.name)
 
         for trans in self.transitions[event_data.source_name]:  # type: ignore[attr-defined]
             event_data.transition = trans
-            event_data.result = await trans.execute(event_data)  # type: ignore[misc]
+            event_data.result = await trans.aexecute(event_data)  # type: ignore[misc]
             if event_data.result:
                 break
 
 
 class AsyncMachine(Machine):
-    """Machine manages states, tfsm and models. In case it is initialized without a specific model
-    (or specifically no model), it will also act as a model itself. Machine takes also care of decorating
-    models with conveniences functions related to added tfsm and states during runtime.
+    """Asynchronous state machine with enforced async-only methods.
+
+    AsyncMachine is a pure async state machine implementation that enforces
+    async usage by disabling all synchronous methods inherited from Machine.
+
+    ⚠️ ASYNC-ONLY ENFORCEMENT:
+
+    This class deliberately violates Liskov Substitution Principle (LSP) to prevent
+    hard-to-debug bugs. All synchronous methods from Machine are DISABLED and will
+    raise RuntimeError if called.
+
+    CRITICAL RULES:
+        1. All methods MUST be awaited
+        2. Forgetting await creates coroutine objects (silent bugs)
+        3. Sync methods raise RuntimeError immediately
+        4. Use only in async contexts
+
+    Example:
+        >>> # ✅ CORRECT - Async usage
+        >>> machine = AsyncMachine(states=['A', 'B'], initial='A')
+        >>> await machine.advance()  # Returns bool, executes transition
+
+        >>> # ❌ WRONG - Missing await (creates coroutine)
+        >>> machine.advance()  # Returns <coroutine>, doesn't execute!
+
+        >>> # ❌ WRONG - Sync method raises RuntimeError
+        >>> # (sync methods are intentionally disabled)
 
     Attributes:
         states (OrderedDict): Collection of all registered states.
-        events (dict): Collection of tfsm ordered by trigger/event.
+        events (dict): Collection of events ordered by trigger/event.
         models (list): List of models attached to the machine.
         initial (str): Name of the initial state for new models.
-        prepare_event (list): Callbacks executed when an event is triggered.
-        before_state_change (list): Callbacks executed after condition checks but before transition is conducted.
-            Callbacks will be executed BEFORE the custom callbacks assigned to the transition.
-        after_state_change (list): Callbacks executed after the transition has been conducted.
-            Callbacks will be executed AFTER the custom callbacks assigned to the transition.
-        finalize_event (list): Callbacks will be executed after all tfsm callbacks have been executed.
-            Callbacks mentioned here will also be called if a transition or condition check raised an error.
-        on_exception: A callable called when an event raises an exception. If not set,
-            the Exception will be raised instead.
-        queued (bool or str): Whether tfsm in callbacks should be executed immediately (False) or sequentially.
-        send_event (bool): When True, any arguments passed to trigger methods will be wrapped in an EventData
-            object, allowing indirect and encapsulated access to data. When False, all positional and keyword
-            arguments will be passed directly to all callback methods.
-        auto_transitions (bool):  When True (default), every state will automatically have an associated
-            to_{state}() convenience trigger in the base model.
-        ignore_invalid_triggers (bool): When True, any calls to trigger methods that are not valid for the
-            present state (e.g., calling an a_to_b() trigger when the current state is c) will be silently
-            ignored rather than raising an invalid transition exception.
-        name (str): Name of the ``Machine`` instance mainly used for easier log message distinction.
+        prepare_event (list): Callbacks executed when an event is triggered (async).
+        before_state_change (list): Callbacks executed after condition checks but before transition (async).
+        after_state_change (list): Callbacks executed after the transition (async).
+        finalize_event (list): Callbacks executed after all events have been processed (async).
+        on_exception: A callable called when an event raises an exception (async).
+        queued (bool or str): Whether events should be executed immediately or sequentially.
+        send_event (bool): When True, arguments are wrapped in EventData objects.
+        auto_transitions (bool):  When True (default), auto-generates to_{state}() methods.
+        ignore_invalid_triggers (bool): When True, invalid triggers are silently ignored.
+        name (str): Name of the machine instance for log messages.
+
+    Type Safety:
+        This class uses `# type: ignore[override]` comments to intentionally suppress
+        mypy errors about LSP violations. This is documented and intentional.
+
+    Performance:
+        AsyncMachine uses asyncio.gather() for parallel callback execution, which
+        may have different performance characteristics than the synchronous Machine.
     """
 
     state_cls = AsyncState
@@ -359,34 +866,174 @@ class AsyncMachine(Machine):
 
     # TODO: This async override of sync parent method requires a generic-based async/sync separation architecture
     def add_model(self, model: Any, initial: str | None = None) -> None:  # type: ignore[override]
-        super().add_model(model, initial)
+        """Add a model to the async machine.
+
+        Overrides Machine.add_model to bind async versions of trigger and may_trigger methods.
+        """
+        if model is Machine.self_literal:
+            model = self
+
+        if initial is None:
+            if self.initial is None:
+                raise ValueError("No initial state configured for machine, must specify when adding model.")
+            initial = self.initial
+
+        for mod in listify(model):
+            mod = self if mod is self.self_literal else mod
+            if mod not in self.models:
+                # Bind async versions of trigger and may_trigger
+                async def _trigger_wrapper(trigger_name: str, *args: Any, **kwargs: Any) -> bool:
+                    """Async wrapper for generic trigger."""
+                    return await self._get_trigger(mod, trigger_name, *args, **kwargs)
+
+                async def _may_trigger_wrapper(trigger_name: str, *args: Any, **kwargs: Any) -> bool:
+                    """Async wrapper for may_trigger."""
+                    return await self._acan_trigger(mod, trigger_name, *args, **kwargs)
+
+                self._checked_assignment(mod, "trigger", _trigger_wrapper)
+                self._checked_assignment(mod, "may_trigger", _may_trigger_wrapper)
+
+                for trigger in self.events:
+                    self._add_trigger_to_model(trigger, mod)
+
+                for state in self.states.values():
+                    self._add_model_to_state(state, mod)
+
+                self.set_state(initial, model=mod)
+                self.models.append(mod)
+
         if self.has_queue == "model":  # type: ignore[comparison-overlap]
             for mod in listify(model):
                 self._transition_queue_dict[id(self) if mod is self.self_literal else id(mod)] = deque()
 
-    # TODO: This async override of sync parent method (returns Coroutine instead of bool) requires a generic-based async/sync separation architecture
-    async def dispatch(self, trigger: str, *args: Any, **kwargs: Any) -> bool:  # type: ignore[override]
-        """Trigger an event on all models assigned to the machine.
+    def _add_trigger_to_model(self, trigger: str, model: Any) -> None:
+        """Add an async trigger wrapper to the model.
+
+        Overrides Machine._add_trigger_to_model to create async trigger functions.
+        The wrapper will call event.atrigger() instead of event.trigger().
+
+        Args:
+            trigger: Name of the trigger/event
+            model: Model to add the trigger to
+        """
+        async def _trigger_wrapper(*args: Any, **kwargs: Any) -> bool:
+            """Async wrapper that calls the event's atrigger method."""
+            return await self.events[trigger].atrigger(model, *args, **kwargs)
+
+        self._checked_assignment(model, trigger, _trigger_wrapper)
+        self._add_may_transition_func_for_trigger(trigger, model)
+
+    def _add_may_transition_func_for_trigger(self, trigger: str, model: Any) -> None:
+        """Add an async may_transition wrapper to the model.
+
+        Overrides Machine._add_may_transition_func_for_trigger to create async functions.
+        The wrapper will call _acan_trigger() instead of _can_trigger().
+
+        Args:
+            trigger: Name of the trigger/event
+            model: Model to add the may_transition function to
+        """
+        async def _may_trigger_wrapper(*args: Any, **kwargs: Any) -> bool:
+            """Async wrapper that calls _acan_trigger."""
+            return await self._acan_trigger(model, trigger, *args, **kwargs)
+
+        self._checked_assignment(model, "may_%s" % trigger, _may_trigger_wrapper)
+
+    async def _get_trigger(self, model: Any, trigger_name: str, *args: Any, **kwargs: Any) -> bool:
+        """Async version of Machine._get_trigger.
+
+        Convenience function added to models to trigger events by name.
+        Calls event.atrigger() instead of event.trigger().
+
+        Args:
+            model: Model with assigned event trigger
+            trigger_name: Name of the trigger to be called
+            *args: Variable length argument list passed to the triggered event
+            **kwargs: Arbitrary keyword arguments passed to the triggered event
+
+        Returns:
+            bool: True if a transition has been conducted or the trigger event has been queued
+        """
+        try:
+            event = self.events[trigger_name]
+        except KeyError:
+            state = self.get_model_state(model)
+            ignore = state.ignore_invalid_triggers if state.ignore_invalid_triggers is not None else self.ignore_invalid_triggers
+            if not ignore:
+                raise AttributeError("Do not know event named '%s'." % trigger_name)
+            return False
+        return await event.atrigger(model, *args, **kwargs)
+
+    def dispatch(self, trigger: str, *args: Any, **kwargs: Any) -> bool:  # type: ignore[override]
+        """Synchronous version is disabled in AsyncMachine!
+
+        ⚠️  Use 'await adispatch(...)' instead.
+
+        Raises:
+            RuntimeError: Always raised when called
+        """
+        raise RuntimeError(
+            "AsyncMachine.dispatch() is disabled. Use 'await machine.adispatch(...)' instead."
+        )
+
+    async def adispatch(self, trigger: str, *args: Any, **kwargs: Any) -> bool:
+        """Trigger an event on all models assigned to the machine asynchronously.
+
+        ⚠️  CRITICAL:
+            This is an async method and MUST be awaited:
+                ✅ await machine.adispatch('event')
+                ❌ machine.adispatch('event')  # BUG: Creates coroutine, won't execute!
+
+        If you don't await, you'll get a coroutine object instead of the result.
+
         Args:
             trigger (str): Event name
             *args (list): List of arguments passed to the event trigger
             **kwargs (dict): Dictionary of keyword arguments passed to the event trigger
         Returns:
-            bool The truth value of all triggers combined with AND
+            bool: The truth value of all triggers combined with AND
         """
         results = await self.await_all([partial(getattr(model, trigger), *args, **kwargs) for model in self.models])
         return all(results)
 
-    # TODO: This async override of sync parent method requires a generic-based async/sync separation architecture
-    async def callbacks(self, funcs: CallbackList, event_data: EventData) -> None:  # type: ignore[override]
-        """Triggers a list of callbacks"""
-        await self.await_all([partial(event_data.machine.callback, func, event_data) for func in funcs])
+    def callbacks(self, funcs: CallbackList, event_data: EventData) -> None:  # type: ignore[override]
+        """Synchronous version is disabled in AsyncMachine!
 
-    # TODO: This async override of sync parent method requires a generic-based async/sync separation architecture
-    async def callback(self, func: Callback, event_data: EventData) -> None:  # type: ignore[override]
-        """Trigger a callback function with passed event_data parameters. In case func is a string,
-            the callable will be resolved from the passed model in event_data. This function is not intended to
-            be called directly but through state and transition callback definitions.
+        ⚠️  Use 'await acallbacks(...)' instead.
+
+        Raises:
+            RuntimeError: Always raised when called
+        """
+        raise RuntimeError(
+            "AsyncMachine.callbacks() is disabled. Use 'await machine.acallbacks(...)' instead."
+        )
+
+    async def acallbacks(self, funcs: CallbackList, event_data: EventData) -> None:
+        """Triggers a list of callbacks asynchronously.
+
+        ⚠️  CRITICAL: Must be awaited: await machine.acallbacks(...)
+        """
+        await self.await_all([partial(event_data.machine.acallback, func, event_data) for func in funcs])
+
+    def callback(self, func: Callback, event_data: EventData) -> None:  # type: ignore[override]
+        """Synchronous version is disabled in AsyncMachine!
+
+        ⚠️  Use 'await acallback(...)' instead.
+
+        Raises:
+            RuntimeError: Always raised when called
+        """
+        raise RuntimeError(
+            "AsyncMachine.callback() is disabled. Use 'await machine.acallback(...)' instead."
+        )
+
+    async def acallback(self, func: Callback, event_data: EventData) -> None:
+        """Trigger a callback function asynchronously.
+
+        ⚠️  CRITICAL: Must be awaited: await machine.acallback(...)
+
+        Automatically awaits awaitable results from callbacks.
+
         Args:
             func (string, callable): The callback function.
                 1. First, if the func is callable, just call it
@@ -461,7 +1108,7 @@ class AsyncMachine(Machine):
             else:
                 self.async_tasks[id(model)] = [asyncio.current_task()]  # type: ignore[list-item]
             try:
-                res = await self._process_async(func, model)
+                res = await self._aprocess(func, model)
             except asyncio.CancelledError as err:
                 # raise CancelledError only if the task was not cancelled by internal processes
                 # we indicate internal cancellation by passing CANCELLED_MSG to cancel()
@@ -475,7 +1122,7 @@ class AsyncMachine(Machine):
                 if len(self.async_tasks[id(model)]) == 0:
                     del self.async_tasks[id(model)]
         else:
-            res = await self._process_async(func, model)
+            res = await self._aprocess(func, model)
         return res
 
     def remove_model(self, model: Any) -> None:
@@ -496,8 +1143,23 @@ class AsyncMachine(Machine):
             self._transition_queue.clear()
             self._transition_queue.extend(new_queue)
 
-    # TODO: This async override of sync parent method requires a generic-based async/sync separation architecture
-    async def _can_trigger(self, model: Any, trigger: str, *args: Any, **kwargs: Any) -> bool:  # type: ignore[override]
+    def _can_trigger(self, model: Any, trigger: str, *args: Any, **kwargs: Any) -> bool:  # type: ignore[override]
+        """Synchronous version is disabled in AsyncMachine!
+
+        ⚠️  Use 'await _acan_trigger(...)' instead.
+
+        Raises:
+            RuntimeError: Always raised when called
+        """
+        raise RuntimeError(
+            "AsyncMachine._can_trigger() is disabled. Use 'await machine._acan_trigger(...)' instead."
+        )
+
+    async def _acan_trigger(self, model: Any, trigger: str, *args: Any, **kwargs: Any) -> bool:
+        """Check if an event can be triggered asynchronously.
+
+        ⚠️  CRITICAL: Must be awaited.
+        """
         state = self.get_model_state(model)
         event_data = AsyncEventData(state, AsyncEvent(name=trigger, machine=self), self, model, args, kwargs)
 
@@ -511,23 +1173,31 @@ class AsyncMachine(Machine):
                     continue
                 event_data.transition = transition
                 try:
-                    await self.callbacks(self.prepare_event, event_data)
-                    await self.callbacks(transition.prepare, event_data)
-                    if all(await self.await_all([partial(c.check, event_data) for c in transition.conditions])):
+                    await self.acallbacks(self.prepare_event, event_data)
+                    await self.acallbacks(transition.prepare, event_data)
+                    if all(await self.await_all([partial(c.acheck, event_data) for c in transition.conditions])):
                         return True
                 except BaseException as err:  # pylint: disable=broad-except
                     event_data.error = err  # type: ignore[assignment]
                     if self.on_exception:
-                        await self.callbacks(self.on_exception, event_data)
+                        await self.acallbacks(self.on_exception, event_data)
                     else:
                         raise
         return False
 
-    # TODO: This async override of sync parent method requires a generic-based async/sync separation architecture
     def _process(self, trigger: Any) -> None:  # type: ignore[override]
-        raise RuntimeError("AsyncMachine should not call `Machine._process`. Use `Machine._process_async` instead.")
+        """Synchronous version is disabled in AsyncMachine!
 
-    async def _process_async(self, trigger: partial[Any], model: Any) -> bool:
+        ⚠️  Use 'await _aprocess(...)' instead.
+
+        Raises:
+            RuntimeError: Always raised when called
+        """
+        raise RuntimeError(
+            "AsyncMachine._process() is disabled. Use 'await machine._aprocess(...)' instead."
+        )
+
+    async def _aprocess(self, trigger: partial[Any], model: Any) -> bool:
         # default processing
         if not self.has_queue:
             if not self._transition_queue:
@@ -596,12 +1266,12 @@ class HierarchicalAsyncMachine(HierarchicalMachine, AsyncMachine):
         except BaseException as err:  # pylint: disable=broad-except; Exception will be handled elsewhere
             event_data.error = err  # type: ignore[assignment]
             if self.on_exception:
-                await self.callbacks(self.on_exception, event_data)
+                await self.acallbacks(self.on_exception, event_data)
             else:
                 raise
         finally:
             try:
-                await self.callbacks(self.finalize_event, event_data)
+                await self.acallbacks(self.finalize_event, event_data)
                 _LOGGER.debug("%sExecuted machine finalize callbacks", self.name)
             except BaseException as err:  # pylint: disable=broad-except; Exception will be handled elsewhere
                 _LOGGER.error("%sWhile executing finalize callbacks a %s occurred: %s.", self.name, type(err).__name__, str(err))
@@ -623,7 +1293,7 @@ class HierarchicalAsyncMachine(HierarchicalMachine, AsyncMachine):
                     if tmp is not None:
                         res[key] = tmp
             if not res.get(key, None) and _trigger in self.events:
-                tmp = await self.events[_trigger].trigger_nested(event_data)  # type: ignore[attr-defined]
+                tmp = await self.events[_trigger].atrigger_nested(event_data)  # type: ignore[attr-defined]
                 if tmp is not None:
                     res[key] = tmp
         return None if not res or all(v is None for v in res.values()) else any(res.values())
@@ -651,14 +1321,14 @@ class HierarchicalAsyncMachine(HierarchicalMachine, AsyncMachine):
                         continue
                     event_data.transition = transition
                     try:
-                        await self.callbacks(self.prepare_event, event_data)
-                        await self.callbacks(transition.prepare, event_data)
-                        if all(await self.await_all([partial(c.check, event_data) for c in transition.conditions])):
+                        await self.acallbacks(self.prepare_event, event_data)
+                        await self.acallbacks(transition.prepare, event_data)
+                        if all(await self.await_all([partial(c.acheck, event_data) for c in transition.conditions])):
                             return True
                     except BaseException as err:  # pylint: disable=broad-except
                         event_data.error = err  # type: ignore[assignment]
                         if self.on_exception:
-                            await self.callbacks(self.on_exception, event_data)
+                            await self.acallbacks(self.on_exception, event_data)
                         else:
                             raise
                 source_path.pop(-1)
@@ -701,72 +1371,104 @@ class AsyncTimeout(AsyncState):
         self.runner: dict[int, asyncio.Task[Any]] = {}
         super().__init__(*args, **kwargs)
 
-    # TODO: This async override of sync parent method requires a generic-based async/sync separation architecture
-    async def enter(self, event_data: "AsyncEventData") -> None:  # type: ignore[override]
+    def enter(self, event_data: "AsyncEventData") -> None:  # type: ignore[override]
+        """Synchronous version is disabled in AsyncTimeout!
+
+        ⚠️  Use 'await aenter(...)' instead.
+
+        Raises:
+            RuntimeError: Always raised when called
         """
-        Extends `tfsm.core.State.enter` by starting a timeout timer for
-        the current model when the state is entered and self.timeout is larger
-        than 0.
+        raise RuntimeError(
+            "AsyncTimeout.enter() is disabled. Use 'await state.aenter(...)' instead."
+        )
+
+    async def aenter(self, event_data: "AsyncEventData") -> None:
+        """Enter timeout state asynchronously.
+
+        Extends `AsyncState.aenter` by starting a timeout timer for
+        the current model when the state is entered and self.timeout is larger than 0.
+
+        ⚠️  CRITICAL: Must be awaited!
 
         Args:
             event_data (EventData): events representing the currently processed event.
         """
         if self.timeout > 0:
-            self.runner[id(event_data.model)] = self.create_timer(event_data)
-        await super().enter(event_data)
+            self.runner[id(event_data.model)] = self.acreate_timer(event_data)
+        await super().aenter(event_data)
 
-    # TODO: This async override of sync parent method requires a generic-based async/sync separation architecture
-    async def exit(self, event_data: "AsyncEventData") -> None:  # type: ignore[override]
+    def exit(self, event_data: "AsyncEventData") -> None:  # type: ignore[override]
+        """Synchronous version is disabled in AsyncTimeout!
+
+        ⚠️  Use 'await aexit(...)' instead.
+
+        Raises:
+            RuntimeError: Always raised when called
         """
-        Cancels running timeout tasks stored in `self.runner` first (when not note) before
+        raise RuntimeError(
+            "AsyncTimeout.exit() is disabled. Use 'await state.aexit(...)' instead."
+        )
+
+    async def aexit(self, event_data: "AsyncEventData") -> None:
+        """Exit timeout state asynchronously.
+
+        Cancels running timeout tasks stored in `self.runner` first (when not empty) before
         calling further exit callbacks.
+
+        ⚠️  CRITICAL: Must be awaited!
+
+        Args:
+            event_data (EventData): Data representing the currently processed event.
+        """
+        timer_task = self.runner.get(id(event_data.model), None)
+        if timer_task is not None and not timer_task.done():
+            timer_task.cancel()
+        await super().aexit(event_data)
+
+    def acreate_timer(self, event_data: "AsyncEventData") -> "asyncio.Task[Any]":
+        """
+        Creates and returns a running timer. Shields self._aprocess_timeout to prevent cancellation when
+        transitioning away from the current state (which cancels the timer) while processing timeout callbacks.
+
+        ⚠️  CRITICAL: Must be awaited!
 
         Args:
             event_data (EventData): Data representing the currently processed event.
 
         Returns:
-
-        """
-        timer_task = self.runner.get(id(event_data.model), None)
-        if timer_task is not None and not timer_task.done():
-            timer_task.cancel()
-        await super().exit(event_data)
-
-    def create_timer(self, event_data: "AsyncEventData") -> "asyncio.Task[Any]":
-        """
-        Creates and returns a running timer. Shields self._process_timeout to prevent cancellation when
-        transitioning away from the current state (which cancels the timer) while processing timeout callbacks.
-        Args:
-            event_data (EventData): Data representing the currently processed event.
-
-        Returns (cancellable): A running timer with a cancel method
+            asyncio.Task: A running timer with a cancel method
         """
 
         async def _timeout() -> None:
             await asyncio.sleep(self.timeout)
-            await asyncio.shield(self._process_timeout(event_data))
+            await asyncio.shield(self._aprocess_timeout(event_data))
 
         return asyncio.create_task(_timeout())
 
-    async def _process_timeout(self, event_data: "AsyncEventData") -> None:
+    async def _aprocess_timeout(self, event_data: "AsyncEventData") -> None:
+        """Process timeout callbacks asynchronously.
+
+        ⚠️  CRITICAL: Must be awaited!
+        """
         _LOGGER.debug("%sTimeout state %s. Processing callbacks...", event_data.machine.name, self.name)
         event_data = AsyncEventData(
             event_data.state, AsyncEvent("timeout", event_data.machine), event_data.machine, event_data.model, args=tuple(), kwargs={}
         )
         token = AsyncMachine.current_context.set(None)
         try:
-            await event_data.machine.callbacks(self.on_timeout, event_data)  # type: ignore[func-returns-value]
+            await event_data.machine.acallbacks(self.on_timeout, event_data)
         except BaseException as err:
             _LOGGER.warning("%sException raised while processing timeout!", event_data.machine.name)
             event_data.error = err  # type: ignore[assignment]
             try:
                 if event_data.machine.on_exception:
-                    await event_data.machine.callbacks(event_data.machine.on_exception, event_data)  # type: ignore[func-returns-value]
+                    await event_data.machine.acallbacks(event_data.machine.on_exception, event_data)
                 else:
                     raise
             except BaseException as err2:  # pylint: disable=broad-except
                 _LOGGER.error(
-                    "%sHandling timeout exception '%s' caused another exception: %s. Cancel running tfsm...",
+                    "%sHandling timeout exception '%s' caused another exception: %s. Cancel running transitions...",
                     event_data.machine.name,
                     repr(err),
                     repr(err2),

@@ -218,7 +218,7 @@ class TestAsync(TestTransitions):
         machine.add_model(model1)
         machine.add_model(model2, initial="B")
         machine.add_model(model3, initial="C")
-        asyncio.run(machine.dispatch("go"))
+        asyncio.run(machine.adispatch("go"))
         self.assertTrue(model1.is_B())
         self.assertEqual("C", model2.state)
         self.assertEqual(machine.initial, model3.state)
