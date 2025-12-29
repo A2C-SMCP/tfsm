@@ -16,7 +16,8 @@
       "Bash(uv run poe mypy:*)",
       "Bash(uv run poe format:*)",
       "Bash(uv run poe test:*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "WebSearch"
     ]
   }
 }

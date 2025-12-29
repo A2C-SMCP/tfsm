@@ -861,7 +861,7 @@ class AsyncMachine(Machine):
                 # Bind async versions of trigger and may_trigger
                 async def _trigger_wrapper(trigger_name: str, *args: Any, model: Any = mod, **kwargs: Any) -> bool:
                     """Async wrapper for generic trigger."""
-                    return await self._get_trigger(model, trigger_name, *args, **kwargs)
+                    return await self._aget_trigger(model, trigger_name, *args, **kwargs)
 
                 async def _may_trigger_wrapper(trigger_name: str, *args: Any, model: Any = mod, **kwargs: Any) -> bool:
                     """Async wrapper for may_trigger."""
@@ -918,11 +918,23 @@ class AsyncMachine(Machine):
 
         self._checked_assignment(model, "may_%s" % trigger, _may_trigger_wrapper)
 
-    async def _get_trigger(self, model: Any, trigger_name: str, *args: Any, **kwargs: Any) -> bool:  # type: ignore[override]
+    def _get_trigger(self, model: Any, trigger_name: str, *args: Any, **kwargs: Any) -> bool:
+        """Synchronous version is disabled in AsyncMachine!
+
+        ⚠️  Use 'await _aget_trigger(...)' instead.
+
+        Raises:
+            RuntimeError: Always raised when called
+        """
+        raise RuntimeError("AsyncMachine._get_trigger() is disabled. Use 'await machine._aget_trigger(...)' instead.")
+
+    async def _aget_trigger(self, model: Any, trigger_name: str, *args: Any, **kwargs: Any) -> bool:
         """Async version of Machine._get_trigger.
 
         Convenience function added to models to trigger events by name.
         Calls event.atrigger() instead of event.trigger().
+
+        ⚠️  CRITICAL: Must be awaited!
 
         Args:
             model: Model with assigned event trigger
