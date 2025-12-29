@@ -157,7 +157,7 @@ install-all = "uv pip install -e '.[all]'"
 
 # Test tasks
 test = "uv run pytest -n auto tests/"
-test-cov = "uv run pytest -n auto --cov=tfsm --cov-report=html --cov-report=term tests/"
+test-cov = "uv run pytest --cov=tfsm --cov-report=html --cov-report=term --cov-report=xml tests/"
 test-no-diagrams = "uv run pytest -n auto tests/ --ignore=tests/test_codestyle.py"
 
 # Type checking
