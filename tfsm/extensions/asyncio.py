@@ -132,6 +132,7 @@ class AsyncState(State):
         """
         _LOGGER.debug("%sExiting state %s. Processing callbacks...", event_data.machine.name, self.name)
         await event_data.machine.acallbacks(self.on_exit, event_data)
+        self._pocket = None
         _LOGGER.info("%sFinished processing state %s exit callbacks.", event_data.machine.name, self.name)
 
 

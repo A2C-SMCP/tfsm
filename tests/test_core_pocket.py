@@ -1,6 +1,8 @@
 """Test State.pocket functionality"""
+
 import unittest
-from tfsm.core import Machine, State
+
+from tfsm.core import Machine
 
 
 class TestStatePocket(unittest.TestCase):
