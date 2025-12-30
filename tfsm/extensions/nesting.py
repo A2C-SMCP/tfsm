@@ -185,7 +185,19 @@ class NestedState(State):
         state is entered.
     """
 
-    __slots__ = ["_name", "final", "ignore_invalid_triggers", "on_enter", "on_exit", "initial", "events", "states", "on_final", "_scope"]
+    __slots__ = [
+        "_name",
+        "final",
+        "ignore_invalid_triggers",
+        "on_enter",
+        "on_exit",
+        "initial",
+        "events",
+        "states",
+        "on_final",
+        "_scope",
+        "_pocket",
+    ]
 
     separator = "_"
     """ Separator between the names of parent and child states. In case '_' is required for

@@ -427,6 +427,264 @@ assert hero.machine.get_state(hero.state).final  # it's over
 assert hero.is_offender_gone()  # maybe next time ...
 ```
 
+#### <a name="state-pocket"></a>State Pocket
+
+Have you ever wanted to get a return value from a state transition? For example, when transitioning to 'saving the world' state, wouldn't it be nice to know how many villains were defeated or how much time was spent?
+
+**Problem:** State trigger functions don't have meaningful return values. This is because:
+- Callbacks are executed in groups (before, prepare, on_enter, after, etc.)
+- Complex calling chains exist with queued transitions and automatic state jumps
+- It's unclear which callback's return value should be returned
+
+**Solution:** Instead of complex return value collection, tfsm provides a **"pocket"** feature - a temporary storage space on each State object where you can explicitly set values during the state's lifecycle.
+
+The pocket is like a small pocket on the State object (named after the Pokemon concept) that can hold anything you want. The key characteristics are:
+
+- **Explicit control**: You decide what goes into the pocket (usually in `on_enter` callbacks)
+- **Automatic cleanup**: Pocket is automatically cleared when the state exits
+- **State-scoped**: Each state has its own independent pocket
+- **Type-flexible**: Can store any Python object (strings, dicts, custom objects, etc.)
+
+##### Basic Usage
+
+Let's enhance our `NarcolepticSuperhero` to track mission statistics:
+
+```python
+from tfsm import Machine
+
+
+class NarcolepticSuperhero(object):
+    states = ['asleep', 'hanging out', 'hungry', 'sweaty', 'saving the world']
+
+    def __init__(self, name):
+        self.name = name
+        self.kittens_rescued = 0
+
+        # Initialize the state machine with send_event=True to access event_data
+        self.machine = Machine(
+            model=self,
+            states=NarcolepticSuperhero.states,
+            initial='asleep',
+            send_event=True,  # Required for accessing event_data.state
+            auto_transitions=True
+        )
+
+        # Add transitions
+        self.machine.add_transition('wake_up', 'asleep', 'hanging out')
+        self.machine.add_transition('work_out', 'hanging out', 'hungry')
+        self.machine.add_transition('eat', 'hungry', 'hanging out')
+        self.machine.add_transition('distress_call', '*', 'saving the world')
+        self.machine.add_transition('complete_mission', 'saving the world', 'sweaty')
+        self.machine.add_transition('clean_up', 'sweaty', 'asleep')
+        self.machine.add_transition('nap', '*', 'asleep')
+
+    def on_enter_saving_the_world(self, event_data):
+        """Store mission start time when entering saving_the_world state"""
+        import time
+        event_data.state.pocket = {
+            'start_time': time.time(),
+            'villains_defeated': 0,
+            'kittens_saved': 0
+        }
+
+    def on_exit_saving_the_world(self, event_data):
+        """Calculate mission duration in on_exit - pocket is still available!"""
+        import time
+        mission_data = event_data.state.pocket
+        if mission_data:
+            duration = time.time() - mission_data['start_time']
+            print(f"Mission completed in {duration:.2f} seconds")
+            # Pocket will be cleared automatically after this callback
+
+    def on_enter_hanging_out(self, event_data):
+        """Store relaxation activity"""
+        event_data.state.pocket = {'activity': 'chilling', 'energy_level': 100}
+
+
+# Usage
+>>> batman = NarcolepticSuperhero("Batman")
+>>> batman.wake_up()
+
+# Check pocket of 'hanging out' state
+>>> state = batman.machine.get_state('hanging out')
+>>> state.pocket
+{'activity': 'chilling', 'energy_level': 100}
+
+# Go save the world
+>>> batman.distress_call()
+>>> mission_state = batman.machine.get_state('saving the world')
+>>> mission_state.pocket['start_time']
+1703123456.789
+
+# Complete the mission (triggers on_exit)
+>>> batman.complete_mission()
+Mission completed in 12.34 seconds
+
+# Pocket is now cleared
+>>> batman.machine.get_state('saving the world').pocket
+None
+```
+
+##### Pocket Lifecycle
+
+The pocket follows a clear lifecycle tied to state transitions:
+
+1. **Initial value**: When a state is created, `pocket` is `None`
+2. **Setting values**: You set pocket values, typically in `on_enter` callbacks
+3. **Accessing values**: You can read pocket anytime the state is active
+4. **Automatic clearing**: Pocket is set to `None` when state exits (after `on_exit` callbacks)
+
+This means:
+- Pocket is **still available** in `on_exit` callbacks for cleanup/processing
+- Pocket is **cleared automatically** - no manual cleanup needed
+- Pocket is **None** when state is not active
+
+##### With AsyncMachine
+
+Pocket works seamlessly with async state machines:
+
+```python
+from tfsm.extensions.asyncio import AsyncMachine
+import asyncio
+
+
+class AsyncHero:
+    def __init__(self):
+        self.machine = AsyncMachine(
+            model=self,
+            states=['idle', 'fighting', 'resting'],
+            initial='idle',
+            send_event=True,
+            auto_transitions=True
+        )
+
+    async def on_enter_fighting(self, event_data):
+        # Simulate async work and store result
+        await asyncio.sleep(0.1)
+        event_data.state.pocket = {
+            'enemies_defeated': 5,
+            'battle_duration': 10.5
+        }
+
+    async def on_exit_fighting(self, event_data):
+        # Pocket is still available here
+        result = event_data.state.pocket
+        await asyncio.sleep(0.05)  # Simulate cleanup
+        print(f"Battle summary: {result}")
+
+
+async def main():
+    hero = AsyncHero()
+    await hero.to_fighting()
+    # ... some time later ...
+    await hero.to_resting()
+    # Pocket cleared automatically
+
+
+asyncio.run(main())
+```
+
+##### With Hierarchical State Machines
+
+In nested state machines, each state has its own independent pocket:
+
+```python
+from tfsm.extensions.nesting import HierarchicalMachine
+
+
+class ComplexHero:
+    def __init__(self):
+        states = [
+            'idle',
+            {
+                'name': 'active',
+                'children': [
+                    'patrolling',
+                    {
+                        'name': 'combat',
+                        'children': ['melee', 'ranged']
+                    }
+                ]
+            }
+        ]
+
+        self.machine = HierarchicalMachine(
+            model=self,
+            states=states,
+            initial='idle',
+            send_event=True,
+            auto_transitions=True
+        )
+
+    def on_enter_active(self, event_data):
+        event_data.state.pocket = {'mode': 'active', 'energy': 100}
+
+    def on_enter_active_combat(self, event_data):
+        event_data.state.pocket = {'enemies': 3, 'weapon_ready': True}
+
+    def on_enter_active_combat_melee(self, event_data):
+        event_data.state.pocket = {'damage': 50, 'hits': 0}
+
+
+# Usage
+>>> hero = ComplexHero()
+>>> hero.to_active()
+
+# Each level has its own pocket
+>>> hero.machine.get_state('active').pocket
+{'mode': 'active', 'energy': 100}
+
+>>> hero.to_active_combat_melee()
+
+# Parent states retain their pockets (they didn't exit)
+>>> hero.machine.get_state('active').pocket
+{'mode': 'active', 'energy': 100}
+
+>>> hero.machine.get_state('active_combat').pocket
+{'enemies': 3, 'weapon_ready': True}
+
+>>> hero.machine.get_state('active_combat_melee').pocket
+{'damage': 50, 'hits': 0}
+
+# Transition to sibling state
+>>> hero.to_active_patrol()
+
+# Only melee state exited and cleared pocket
+>>> hero.machine.get_state('active_combat_melee').pocket
+None
+
+# Parent states still have their pockets
+>>> hero.machine.get_state('active').pocket
+{'mode': 'active', 'energy': 100}
+```
+
+##### Best Practices
+
+1. **Use `send_event=True`**: To access `event_data.state.pocket` in callbacks, initialize the machine with `send_event=True`
+
+2. **Set pocket early**: Set pocket values in `on_enter` callbacks for consistency
+
+3. **Use meaningful data structures**: Store dicts or custom objects to keep related data together
+
+4. **Don't rely on pocket for critical state**: Pocket is temporary and cleared on exit, use model attributes for persistent state
+
+5. **Access via `machine.get_state()`**: To read a state's pocket from outside callbacks, use `machine.get_state('state_name').pocket`
+
+6. **Available in `on_exit`**: Pocket is still accessible in `on_exit` callbacks for final processing
+
+##### When to Use Pocket
+
+**Good use cases:**
+- Temporary computation results during state activation
+- Metrics specific to a state instance (e.g., time spent, items processed)
+- Debugging information during state lifecycle
+- Data that needs to be passed between callbacks in the same state
+
+**Not suitable for:**
+- Persistent model state (use model attributes instead)
+- Data that needs to survive state transitions (pocket is cleared on exit)
+- Cross-state communication (use model attributes or parameters instead)
+
 #### <a name="checking-state"></a>Checking state
 
 You can always check the current state of the model by either:

@@ -83,9 +83,13 @@ class State:
         on_enter (list): Callbacks executed when a state is entered.
         on_exit (list): Callbacks executed when a state is exited.
         ignore_invalid_triggers (bool): Indicates if unhandled/invalid triggers should raise an exception.
+        pocket (Any): A temporary storage space for user data. The pocket is available for use in state
+            callbacks (e.g., on_enter) and will be automatically cleared when the state is exited (on_exit).
+            This provides a convenient way to pass data between callbacks without using complex return value
+            mechanisms. The name "pocket" is inspired by Pokemon - it can hold anything!
     """
 
-    __slots__ = ["_name", "final", "ignore_invalid_triggers", "on_enter", "on_exit"]
+    __slots__ = ["_name", "final", "ignore_invalid_triggers", "on_enter", "on_exit", "_pocket"]
 
     # A list of dynamic methods which can be resolved by a ``Machine`` instance for convenience functions.
     # Dynamic methods for states must always start with `on_`!
@@ -118,6 +122,7 @@ class State:
         # Convert listify results to CallbackList (ensure we always have a list, not a tuple)
         self.on_enter: CallbackList = list(listify(on_enter)) if on_enter else []
         self.on_exit: CallbackList = list(listify(on_exit)) if on_exit else []
+        self._pocket: Any = None
 
     @property
     def name(self) -> str:
@@ -131,6 +136,39 @@ class State:
         """The state's value. For string states this will be equivalent to the name attribute."""
         return self._name
 
+    @property
+    def pocket(self) -> Any:
+        """Get the value stored in the state's pocket.
+
+        The pocket is a temporary storage space that persists while the state is active.
+        It is automatically cleared when the state is exited (during on_exit callbacks).
+
+        Example:
+            def on_enter_processing(self, event_data):
+                event_data.state.pocket = {"count": 42, "status": "ok"}
+
+            # Later, retrieve the value
+            result = machine.get_state('processing').pocket
+
+        Returns:
+            The value stored in the pocket, or None if not set.
+        """
+        return self._pocket
+
+    @pocket.setter
+    def pocket(self, value: Any) -> None:
+        """Set a value in the state's pocket.
+
+        Args:
+            value: Any value to store in the pocket. The pocket can hold any type of data.
+
+        Example:
+            event_data.state.pocket = "Hello"
+            event_data.state.pocket = {"key": "value"}
+            event_data.state.pocket = [1, 2, 3]
+        """
+        self._pocket = value
+
     def enter(self, event_data: "EventData") -> None:
         """Triggered when a state is entered."""
         _LOGGER.debug(f"{event_data.machine.name}Entering state {self.name}. Processing callbacks...")
@@ -141,6 +179,7 @@ class State:
         """Triggered when a state is exited."""
         _LOGGER.debug(f"{event_data.machine.name}Exiting state {self.name}. Processing callbacks...")
         event_data.machine.callbacks(self.on_exit, event_data)
+        self._pocket = None
         _LOGGER.info(f"{event_data.machine.name}Finished processing state {self.name} exit callbacks.")
 
     def add_callback(self, trigger: str, func: str | Callback) -> None:
