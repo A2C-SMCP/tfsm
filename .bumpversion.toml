@@ -42,8 +42,7 @@ independent = true
 first_value = 1
 
 [tool.bumpversion.parts.post]
-first_value = 1
-independent = true
+values = [".post"]
 
 [tool.bumpversion.parts.post_n]
 first_value = 1
