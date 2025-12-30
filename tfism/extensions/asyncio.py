@@ -73,7 +73,7 @@ from collections.abc import Callable
 from functools import partial, reduce
 from typing import Any, Optional
 
-from ..core import Callback, CallbackList, Condition, Event, EventData, Machine, MachineError, State, Transition, listify
+from ..core import Callback, CallbackList, Condition, Event, EventData, Machine, MachineError, State, StateName, Transition, listify
 from .nesting import FunctionWrapper, HierarchicalMachine, NestedEvent, NestedState, NestedTransition, resolve_order
 
 _LOGGER = logging.getLogger(__name__)
@@ -89,6 +89,33 @@ class AsyncState(State):
 
     All state transition methods (enter/exit) are async and MUST be awaited.
     """
+
+    dynamic_methods = ["on_aenter", "on_aexit"]
+
+    def __init__(
+        self,
+        name: StateName,
+        on_enter: str | CallbackList | None = None,
+        on_exit: str | CallbackList | None = None,
+        ignore_invalid_triggers: bool | None = None,
+        final: bool = False,
+    ):
+        """Initialize an AsyncState with async callbacks.
+
+        Args:
+            name: The name of the state
+            on_enter: Callback(s) to trigger when state is entered (stored in on_aenter)
+            on_exit: Callback(s) to trigger when state is exited (stored in on_aexit)
+            ignore_invalid_triggers: Optional flag to ignore invalid triggers
+            final: Whether this is a final state
+        """
+        # Initialize parent class normally
+        super().__init__(name, on_enter=on_enter, on_exit=on_exit, ignore_invalid_triggers=ignore_invalid_triggers, final=final)
+
+        # Set on_aenter/on_aexit as aliases to on_enter/on_exit
+        # This allows dynamic_methods to use new names while maintaining compatibility
+        self.on_aenter = self.on_enter
+        self.on_aexit = self.on_exit
 
     def enter(self, event_data: "AsyncEventData") -> None:  # type: ignore[override]
         """Synchronous version is disabled in AsyncState!
@@ -109,7 +136,7 @@ class AsyncState(State):
             event_data: (AsyncEventData): The currently processed event.
         """
         _LOGGER.debug("%sEntering state %s. Processing callbacks...", event_data.machine.name, self.name)
-        await event_data.machine.acallbacks(self.on_enter, event_data)
+        await event_data.machine.acallbacks(self.on_aenter, event_data)
         _LOGGER.info("%sFinished processing state %s enter callbacks.", event_data.machine.name, self.name)
 
     def exit(self, event_data: "AsyncEventData") -> None:  # type: ignore[override]
@@ -131,13 +158,15 @@ class AsyncState(State):
             event_data: (AsyncEventData): The currently processed event.
         """
         _LOGGER.debug("%sExiting state %s. Processing callbacks...", event_data.machine.name, self.name)
-        await event_data.machine.acallbacks(self.on_exit, event_data)
+        await event_data.machine.acallbacks(self.on_aexit, event_data)
         self._pocket = None
         _LOGGER.info("%sFinished processing state %s exit callbacks.", event_data.machine.name, self.name)
 
 
 class NestedAsyncState(NestedState, AsyncState):
     """A state that allows substates. Callback execution is done asynchronously."""
+
+    dynamic_methods = ["on_aenter", "on_aexit", "on_final"]
 
     def scoped_enter(self, event_data: "AsyncEventData", scope: list[str] | None = None) -> None:  # type: ignore[override]
         """Synchronous version is disabled in NestedAsyncState!

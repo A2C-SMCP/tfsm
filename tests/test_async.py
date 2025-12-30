@@ -64,15 +64,46 @@ class TestAsync(TestTransitions):
         self.machine_cls = AsyncMachine  # type: Type[AsyncMachine]
         self.machine = self.machine_cls(states=["A", "B", "C"], transitions=[["go", "A", "B"]], initial="A")
 
+    def test___getattr___and_identify_callback(self):
+        """Override parent test to check for async callback names (on_aenter/on_aexit)."""
+        m = self.machine_cls(Stuff(), states=["A", "B", "C"], initial="A")
+        m.add_transition("move", "A", "B")
+        m.add_transition("move", "B", "C")
+
+        callback = m.__getattr__("before_move")
+        self.assertTrue(callable(callback))
+
+        with self.assertRaises(AttributeError):
+            m.__getattr__("before_no_such_transition")
+
+        with self.assertRaises(AttributeError):
+            m.__getattr__("__no_such_method__")
+
+        with self.assertRaises(AttributeError):
+            m.__getattr__("")
+
+        # Test async state callbacks
+        type, target = m._identify_callback("on_aexit_foobar")
+        self.assertEqual(type, "on_aexit")
+        self.assertEqual(target, "foobar")
+
+        type, target = m._identify_callback("on_aexitfoobar")
+        self.assertEqual(type, None)
+        self.assertEqual(target, None)
+
+        type, target = m._identify_callback("notacallback_foobar")
+        self.assertEqual(type, None)
+        self.assertEqual(target, None)
+
     def test_new_state_in_enter_callback(self):
         machine = self.machine_cls(states=["A", "B"], initial="A")
 
-        async def on_enter_B():
+        async def on_aenter_B():
             state = self.machine_cls.state_cls(name="C")
             machine.add_state(state)
             await machine.to_C()
 
-        machine.on_enter_B(on_enter_B)
+        machine.on_aenter_B(on_aenter_B)
         asyncio.run(machine.to_B())
 
     def test_dynamic_model_state_attribute(self):
@@ -123,8 +154,8 @@ class TestAsync(TestTransitions):
             exit_mock()
 
         m = self.machine
-        m.on_exit_A(async_exit)
-        m.on_enter_B(async_enter)
+        m.on_aexit_A(async_exit)
+        m.on_aenter_B(async_enter)
         asyncio.run(m.go())
         self.assertTrue(exit_mock.called)
         self.assertTrue(enter_mock.called)
@@ -168,7 +199,7 @@ class TestAsync(TestTransitions):
             if should_fail is not False:
                 raise ValueError("should_fail has been set")
 
-        self.machine.on_enter_B(process)
+        self.machine.on_aenter_B(process)
         with self.assertRaises(ValueError):
             asyncio.run(self.machine.go())
         asyncio.run(self.machine.to_A())
@@ -802,6 +833,37 @@ class TestHierarchicalAsync(TestAsync):
         super(TestAsync, self).setUp()
         self.machine_cls = HierarchicalAsyncMachine  # type: Type[HierarchicalAsyncMachine]
         self.machine = self.machine_cls(states=["A", "B", "C"], transitions=[["go", "A", "B"]], initial="A")
+
+    def test___getattr___and_identify_callback(self):
+        """Override parent test to check for async callback names (on_aenter/on_aexit)."""
+        m = self.machine_cls(Stuff(), states=["A", "B", "C"], initial="A")
+        m.add_transition("move", "A", "B")
+        m.add_transition("move", "B", "C")
+
+        callback = m.__getattr__("before_move")
+        self.assertTrue(callable(callback))
+
+        with self.assertRaises(AttributeError):
+            m.__getattr__("before_no_such_transition")
+
+        with self.assertRaises(AttributeError):
+            m.__getattr__("__no_such_method__")
+
+        with self.assertRaises(AttributeError):
+            m.__getattr__("")
+
+        # Test async state callbacks
+        type, target = m._identify_callback("on_aexit_foobar")
+        self.assertEqual(type, "on_aexit")
+        self.assertEqual(target, "foobar")
+
+        type, target = m._identify_callback("on_aexitfoobar")
+        self.assertEqual(type, None)
+        self.assertEqual(target, None)
+
+        type, target = m._identify_callback("notacallback_foobar")
+        self.assertEqual(type, None)
+        self.assertEqual(target, None)
 
     def test_nested_async(self):
         mock = MagicMock()

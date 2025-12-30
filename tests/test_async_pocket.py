@@ -32,7 +32,7 @@ class TestAsyncMachinePocket(unittest.TestCase):
         """Test that pocket is cleared when exiting a state with AsyncMachine"""
 
         class Model:
-            async def on_enter_B(self, event_data):
+            async def on_aenter_B(self, event_data):
                 event_data.state.pocket = "Data in B"
 
         async def run_test():
@@ -56,7 +56,7 @@ class TestAsyncMachinePocket(unittest.TestCase):
         """Test setting pocket in on_enter callback with AsyncMachine"""
 
         class Model:
-            async def on_enter_B(self, event_data):
+            async def on_aenter_B(self, event_data):
                 event_data.state.pocket = {"status": "success", "value": 42}
 
         async def run_test():
@@ -80,12 +80,12 @@ class TestAsyncMachinePocket(unittest.TestCase):
                 self.processing_started = False
                 self.result = None
 
-            async def on_enter_processing(self, event_data):
+            async def on_aenter_processing(self, event_data):
                 self.processing_started = True
                 await asyncio.sleep(0.01)  # Simulate async work
                 event_data.state.pocket = {"processed": True, "value": 123}
 
-            async def on_exit_processing(self, event_data):
+            async def on_aexit_processing(self, event_data):
                 # Pocket should still be available
                 self.result = event_data.state.pocket
                 await asyncio.sleep(0.01)  # Simulate cleanup
@@ -122,13 +122,13 @@ class TestAsyncMachinePocket(unittest.TestCase):
             def __init__(self):
                 self.results = []
 
-            async def on_enter_B(self, event_data):
+            async def on_aenter_B(self, event_data):
                 event_data.state.pocket = "B pocket"
                 self.results.append(("enter_B", event_data.state.pocket))
                 # Trigger another transition
                 await event_data.model.to_C()
 
-            async def on_enter_C(self, event_data):
+            async def on_aenter_C(self, event_data):
                 event_data.state.pocket = "C pocket"
                 self.results.append(("enter_C", event_data.state.pocket))
 
@@ -158,10 +158,10 @@ class TestAsyncMachinePocket(unittest.TestCase):
         """Test pocket behavior across multiple state transitions with AsyncMachine"""
 
         class Model:
-            async def on_enter_B(self, event_data):
+            async def on_aenter_B(self, event_data):
                 event_data.state.pocket = "B data"
 
-            async def on_enter_C(self, event_data):
+            async def on_aenter_C(self, event_data):
                 event_data.state.pocket = "C data"
 
         async def run_test():
@@ -191,10 +191,10 @@ class TestAsyncMachinePocket(unittest.TestCase):
             def __init__(self):
                 self.pocket_value_in_exit = None
 
-            async def on_enter_B(self, event_data):
+            async def on_aenter_B(self, event_data):
                 event_data.state.pocket = "Will be checked in exit"
 
-            async def on_exit_B(self, event_data):
+            async def on_aexit_B(self, event_data):
                 # Pocket should still be available here
                 self.pocket_value_in_exit = event_data.state.pocket
                 await asyncio.sleep(0.01)  # Simulate async work
