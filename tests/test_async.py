@@ -1,13 +1,13 @@
 import sys
 from asyncio import CancelledError
 
-from tfsm.extensions.factory import AsyncGraphMachine, HierarchicalAsyncGraphMachine
-from tfsm.extensions.states import add_state_features
+from tfism.extensions.factory import AsyncGraphMachine, HierarchicalAsyncGraphMachine
+from tfism.extensions.states import add_state_features
 
 try:
     import asyncio
 
-    from tfsm.extensions.asyncio import AsyncEventData, AsyncMachine, AsyncTimeout, AsyncTransition, HierarchicalAsyncMachine
+    from tfism.extensions.asyncio import AsyncEventData, AsyncMachine, AsyncTimeout, AsyncTransition, HierarchicalAsyncMachine
 
 except (ImportError, SyntaxError):
     asyncio = None  # type: ignore
@@ -26,7 +26,7 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
     from typing import List, Type
 
-    from tfsm.extensions.asyncio import AsyncTransitionConfig
+    from tfism.extensions.asyncio import AsyncTransitionConfig
 
 
 @skipIf(asyncio is None, "AsyncMachine requires asyncio and contextvars suppport")

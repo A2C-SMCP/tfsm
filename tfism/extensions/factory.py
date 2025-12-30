@@ -18,7 +18,7 @@ from .locking import LockedMachine
 from .nesting import HierarchicalMachine, NestedEvent, NestedTransition
 
 try:
-    from tfsm.extensions.asyncio import AsyncMachine, AsyncTransition, HierarchicalAsyncMachine, NestedAsyncTransition
+    from tfism.extensions.asyncio import AsyncMachine, AsyncTransition, HierarchicalAsyncMachine, NestedAsyncTransition
 except (ImportError, SyntaxError):  # pragma: no cover
 
     class AsyncMachine(Machine):  # type: ignore

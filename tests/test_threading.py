@@ -2,7 +2,7 @@ import logging
 import time
 from threading import Thread
 
-from tfsm.extensions import LockedHierarchicalMachine, LockedMachine
+from tfism.extensions import LockedHierarchicalMachine, LockedMachine
 
 from .test_core import TYPE_CHECKING, TestTransitions
 from .test_nesting import TestNestedTransitions

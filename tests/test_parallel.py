@@ -1,10 +1,10 @@
 from collections import OrderedDict
 from unittest import skipIf
 
-from tfsm import MachineError
-from tfsm.extensions import HierarchicalGraphMachine
-from tfsm.extensions.nesting import NestedState as State
-from tfsm.extensions.nesting import _build_state_list
+from tfism import MachineError
+from tfism.extensions import HierarchicalGraphMachine
+from tfism.extensions.nesting import NestedState as State
+from tfism.extensions.nesting import _build_state_list
 
 from .test_graphviz import pgv as gv
 from .test_nesting import TestNestedTransitions as TestNested

@@ -4,17 +4,17 @@ from typing import TYPE_CHECKING, List, Union
 from unittest import TestCase
 from unittest.mock import MagicMock
 
-from tfsm import Machine
-from tfsm.experimental.utils import add_transitions, event, generate_base_model, transition, with_model_definitions
-from tfsm.extensions import HierarchicalMachine
-from tfsm.extensions.markup import MarkupMachine
+from tfism import Machine
+from tfism.experimental.utils import add_transitions, event, generate_base_model, transition, with_model_definitions
+from tfism.extensions import HierarchicalMachine
+from tfism.extensions.markup import MarkupMachine
 
 from .utils import Stuff
 
 if TYPE_CHECKING:
     from typing import Type
 
-    from tfsm.core import MachineConfig, TransitionConfig
+    from tfism.core import MachineConfig, TransitionConfig
 
 
 def import_code(code: str, name: str) -> ModuleType:

@@ -4,8 +4,8 @@ from functools import partial
 from typing import TYPE_CHECKING, List
 from unittest import TestCase, skipIf
 
-from tfsm import EventData, Machine, MachineError, State
-from tfsm.core import Transition, _prep_ordered_arg, listify
+from tfism import EventData, Machine, MachineError, State
+from tfism.core import Transition, _prep_ordered_arg, listify
 
 from .utils import DummyModel, InheritedStuff, Stuff
 
@@ -17,7 +17,7 @@ except ImportError:
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from tfsm.core import StateConfig, TransitionConfig, TransitionConfigDict
+    from tfism.core import StateConfig, TransitionConfig, TransitionConfigDict
 
 
 def on_exit_A(event):

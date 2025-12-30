@@ -1,9 +1,9 @@
 from enum import Enum
 from unittest import TestCase, skipIf
 
-from tfsm.core import Machine
-from tfsm.extensions.diagrams import GraphMachine, HierarchicalGraphMachine
-from tfsm.extensions.nesting import HierarchicalMachine
+from tfism.core import Machine
+from tfism.extensions.diagrams import GraphMachine, HierarchicalGraphMachine
+from tfism.extensions.nesting import HierarchicalMachine
 
 try:
     import enum
@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
     from typing import Dict, List, Type, Union
 
-    from tfsm.core import TransitionConfig
+    from tfism.core import TransitionConfig
 
 
 @skipIf(enum is None, "enum is not available")

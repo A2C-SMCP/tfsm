@@ -1,4 +1,4 @@
-from tfsm import Machine
+from tfism import Machine
 
 
 class Stuff:

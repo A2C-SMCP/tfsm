@@ -1,7 +1,7 @@
 from functools import partial
 from unittest import TestCase, skipIf
 
-from tfsm.extensions.markup import HierarchicalMarkupMachine, MarkupMachine, rep
+from tfism.extensions.markup import HierarchicalMarkupMachine, MarkupMachine, rep
 
 from .test_core import TYPE_CHECKING
 from .utils import Stuff
@@ -26,7 +26,7 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
     from typing import Dict, List, Type, Union
 
-    from tfsm.core import StateConfig, TransitionConfig
+    from tfism.core import StateConfig, TransitionConfig
 
 
 class SimpleModel:

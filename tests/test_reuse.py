@@ -1,8 +1,8 @@
 from unittest import TestCase
 
-from tfsm import MachineError
-from tfsm.extensions import MachineFactory
-from tfsm.extensions.nesting import HierarchicalMachine, NestedState
+from tfism import MachineError
+from tfism.extensions import MachineFactory
+from tfism.extensions.nesting import HierarchicalMachine, NestedState
 
 from .test_core import TYPE_CHECKING
 from .utils import Stuff
@@ -17,7 +17,7 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
     from typing import Any, Dict, List, Union
 
-    from tfsm.core import TransitionConfig, TransitionConfigDict
+    from tfism.core import TransitionConfig, TransitionConfigDict
 
 test_states = ["A", "B", {"name": "C", "children": ["1", "2", {"name": "3", "children": ["a", "b", "c"]}]}, "D", "E", "F"]
 

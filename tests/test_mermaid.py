@@ -4,8 +4,8 @@ import sys
 import tempfile
 from unittest import TestCase, skipIf
 
-from tfsm.extensions import GraphMachine, HierarchicalGraphMachine, LockedGraphMachine, LockedHierarchicalGraphMachine
-from tfsm.extensions.states import Tags, Timeout, add_state_features
+from tfism.extensions import GraphMachine, HierarchicalGraphMachine, LockedGraphMachine, LockedHierarchicalGraphMachine
+from tfism.extensions.states import Tags, Timeout, add_state_features
 
 from .test_core import TYPE_CHECKING, TestTransitions
 from .test_graphviz import TestDiagrams, TestDiagramsNested

@@ -1,4 +1,4 @@
-"""Nox sessions for testing the tfsm library.
+"""Nox sessions for testing the tfism library.
 
 This file defines nox test sessions for multiple Python versions.
 Usage:
@@ -35,7 +35,7 @@ def mypy(session: nox.Session) -> None:
     session.run("uv", "pip", "install", "-e", ".[dev,mypy]")
 
     # Run mypy strict checks
-    session.run("uv", "run", "mypy", "--config-file", "mypy.ini", "--strict", "tfsm")
+    session.run("uv", "run", "mypy", "--config-file", "mypy.ini", "--strict", "tfism")
 
     # Also run codestyle tests
     session.run("uv", "run", "pytest", "tests/test_codestyle.py")
@@ -87,4 +87,4 @@ def coverage(session: nox.Session) -> None:
 
     # Run pytest with coverage
     # Note: coverage session uses system Python, so we use uv run
-    session.run("uv", "run", "pytest", "-nauto", "--cov=tfsm", "--cov-report=html", "--cov-report=term", "tests/")
+    session.run("uv", "run", "pytest", "-nauto", "--cov=tfism", "--cov-report=html", "--cov-report=term", "tests/")

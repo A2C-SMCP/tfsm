@@ -4,7 +4,7 @@
 
 **Python 3.11+ Modernization Release**
 
-This is a significant release that modernizes the tfsm library for Python 3.11+. It includes breaking changes to the minimum Python version, performance improvements, complete type annotations, and modern tooling.
+This is a significant release that modernizes the tfism library for Python 3.11+. It includes breaking changes to the minimum Python version, performance improvements, complete type annotations, and modern tooling.
 
 ### Breaking Changes
 
@@ -86,11 +86,11 @@ This is a significant release that modernizes the tfsm library for Python 3.11+.
 **For users on Python 3.11+**:
 ```bash
 # Old way (still works)
-pip install tfsm
+pip install tfism
 
 # New way (recommended, faster)
 pip install uv
-uv pip install tfsm
+uv pip install tfism
 ```
 
 **For developers**:
@@ -102,7 +102,7 @@ uv pip install -e '.[all]'
 uv run poe test  # or: uv run pytest
 
 # Type checking
-uv run poe typecheck  # or: uv run mypy --config-file mypy.ini --strict tfsm
+uv run poe typecheck  # or: uv run mypy --config-file mypy.ini --strict tfism
 
 # Multi-version testing
 uv run nox
@@ -453,7 +453,7 @@ Release 0.6.0 is a major release and introduces new state features and bug fixes
 - `Error` checks for error states (not accepted states that cannot be left); subclass of `Tags`
 - `Volatile` enables scoped/temporary state objects to handle context parameters
 - Removed `add_self` from `Machine` constructor
-- `pygraphviz` is now optional; use `pip install tfsm[diagrams]` to install it
+- `pygraphviz` is now optional; use `pip install tfism[diagrams]` to install it
 - Narrowed warnings filter to prevent output cluttering by other 3rd party modules (thanks to @ksandeep)
 - Reword HSM exception when wrong state object had been passedn (thanks to @Blindfreddy)
 - Improved handling of partials during graph generation (thanks to @Synss)

@@ -7,8 +7,8 @@ from os import unlink
 from os.path import getsize
 from unittest import skipIf
 
-from tfsm.extensions import HierarchicalGraphMachine
-from tfsm.extensions.nesting import HierarchicalMachine, NestedState
+from tfism.extensions import HierarchicalGraphMachine
+from tfism.extensions.nesting import HierarchicalMachine, NestedState
 
 from .test_core import TYPE_CHECKING, TestCase, TestTransitions
 from .utils import DummyModel, Stuff
@@ -29,7 +29,7 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
     from typing import Dict, List, Type, Union
 
-    from tfsm.core import TransitionConfig
+    from tfism.core import TransitionConfig
 
 default_separator = NestedState.separator
 
@@ -568,7 +568,7 @@ class TestNestedTransitions(TestTransitions):
         self.assertTrue(model.is_C_1())
 
     def test_correct_subclassing(self):
-        from tfsm.core import State
+        from tfism.core import State
 
         class WrongStateClass(self.machine_cls):  # type: ignore
             state_cls = State

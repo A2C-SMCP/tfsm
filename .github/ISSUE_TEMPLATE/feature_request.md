@@ -7,7 +7,7 @@ assignees: aleneum
 
 ---
 
-You have an idea for a feature that would make `tfsm` more helpful or easier to use? Great! We are looking forward to your suggestion.
+You have an idea for a feature that would make `tfism` more helpful or easier to use? Great! We are looking forward to your suggestion.
 
 **Is your feature request related to a problem? Please describe.**
 A clear and concise description of what the problem is. Ex. I'm always frustrated when [...]

@@ -1,13 +1,13 @@
-# <a name="transitions-module"></a> tfsm
+# <a name="transitions-module"></a> tfism
 
-[![Version](https://img.shields.io/badge/version-v0.9.5-orange.svg)](https://github.com/pytransitions/tfsm)
-[![Build Status](https://github.com/pytransitions/tfsm/actions/workflows/pytest.yml/badge.svg)](https://github.com/pytransitions/tfsm/actions?query=workflow%3Apytest)
-[![Coverage Status](https://coveralls.io/repos/github/pytransitions/tfsm/badge.svg?branch=main)](https://coveralls.io/github/pytransitions/tfsm?branch=main)
-[![PyPi](https://img.shields.io/pypi/v/tfsm.svg)](https://pypi.org/project/tfsm)
-[![Copr](https://img.shields.io/badge/dynamic/json?color=blue&label=copr&query=builds.latest.source_package.version&url=https%3A%2F%2Fcopr.fedorainfracloud.org%2Fapi_3%2Fpackage%3Fownername%3Daleneum%26projectname%3Dpython-tfsm%26packagename%3Dpython-tfsm%26with_latest_build%3DTrue)](https://copr.fedorainfracloud.org/coprs/aleneum/python-tfsm/)
-[![GitHub commits](https://img.shields.io/github/commits-since/pytransitions/tfsm/0.9.4.svg)](https://github.com/pytransitions/tfsm/compare/0.9.4...main)
-[![License](https://img.shields.io/github/license/pytransitions/tfsm.svg)](LICENSE)
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/pytransitions/tfsm/main?filepath=examples%2FPlayground.ipynb)
+[![Version](https://img.shields.io/badge/version-v0.9.5-orange.svg)](https://github.com/pytransitions/tfism)
+[![Build Status](https://github.com/pytransitions/tfism/actions/workflows/pytest.yml/badge.svg)](https://github.com/pytransitions/tfism/actions?query=workflow%3Apytest)
+[![Coverage Status](https://coveralls.io/repos/github/pytransitions/tfism/badge.svg?branch=main)](https://coveralls.io/github/pytransitions/tfism?branch=main)
+[![PyPi](https://img.shields.io/pypi/v/tfism.svg)](https://pypi.org/project/tfism)
+[![Copr](https://img.shields.io/badge/dynamic/json?color=blue&label=copr&query=builds.latest.source_package.version&url=https%3A%2F%2Fcopr.fedorainfracloud.org%2Fapi_3%2Fpackage%3Fownername%3Daleneum%26projectname%3Dpython-tfism%26packagename%3Dpython-tfism%26with_latest_build%3DTrue)](https://copr.fedorainfracloud.org/coprs/aleneum/python-tfism/)
+[![GitHub commits](https://img.shields.io/github/commits-since/pytransitions/tfism/0.9.4.svg)](https://github.com/pytransitions/tfism/compare/0.9.4...main)
+[![License](https://img.shields.io/github/license/pytransitions/tfism.svg)](LICENSE)
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/pytransitions/tfism/main?filepath=examples%2FPlayground.ipynb)
 
 <!-- [![Pylint](https://img.shields.io/badge/pylint-9.71%2F10-green.svg)](https://github.com/pytransitions/transitions) -->
 <!--[![Name](Image)](Link)-->
@@ -18,20 +18,20 @@ A lightweight, object-oriented state machine implementation in Python with many 
 
 ### Using pip (recommended)
 
-    pip install tfsm
+    pip install tfism
 
 ### Using uv (faster, modern package manager)
 
     # Install uv first (if you haven't already)
     curl -LsSf https://astral.sh/uv/install.sh | sh
 
-    # Install tfsm
-    uv pip install tfsm
+    # Install tfism
+    uv pip install tfism
 
 ### From source
 
-    git clone https://github.com/pytransitions/tfsm.git
-    cd tfsm
+    git clone https://github.com/pytransitions/tfism.git
+    cd tfism
     uv pip install -e .  # or: pip install -e .
 
 ## Table of Contents
@@ -78,7 +78,7 @@ They say [a good example is worth](https://www.google.com/webhp?ie=UTF-8#q=%22a+
 Well, "they" probably lie... but here's an example anyway:
 
 ```python
-from tfsm import Machine
+from tfism import Machine
 import random
 
 
@@ -98,9 +98,9 @@ class NarcolepticSuperhero(object):
         # Initialize the state machine
         self.machine = Machine(model = self, states = NarcolepticSuperhero.states, initial = 'asleep')
 
-        # Add some tfsm. We could also define these using a static list of
+        # Add some tfism. We could also define these using a static list of
         # dictionaries, as we did with states above, and then pass the list to
-        # the Machine initializer as the tfsm= argument.
+        # the Machine initializer as the tfism= argument.
 
         # At some point, every superhero must rise and shine.
         self.machine.add_transition(trigger = 'wake_up', source = 'asleep', dest = 'hanging out')
@@ -198,7 +198,7 @@ Have a look at the [Diagrams](#diagrams) extensions if you want to know how.
 
 ## The non-quickstart
 
-A state machine is a _model_ of behavior composed of a finite number of _states_ and _transitions_ between those states. Within each state and transition some _action_ can be performed. A state machine needs to start at some _initial state_. When using `tfsm`, a state machine may consist of multiple objects where some (_machines_) contain definitions for the manipulation of other (_models_). Below, we will look at some core concepts and how to work with them.
+A state machine is a _model_ of behavior composed of a finite number of _states_ and _transitions_ between those states. Within each state and transition some _action_ can be performed. A state machine needs to start at some _initial state_. When using `tfism`, a state machine may consist of multiple objects where some (_machines_) contain definitions for the manipulation of other (_models_). Below, we will look at some core concepts and how to work with them.
 
 ### Some key concepts
 
@@ -228,7 +228,7 @@ lump = Matter()
 You can initialize a (_minimal_) working state machine bound to the model `lump` like this:
 
 ```python
-from tfsm import Machine
+from tfism import Machine
 
 machine = Machine(model = lump, states = ['solid', 'liquid', 'gas', 'plasma'], initial = 'solid')
 
@@ -258,8 +258,8 @@ Let's try again.
 # The states
 states=['solid', 'liquid', 'gas', 'plasma']
 
-# And some tfsm between states. We're lazy, so we'll leave out
-# the inverse phase tfsm (freezing, condensation, etc.).
+# And some tfism between states. We're lazy, so we'll leave out
+# the inverse phase tfism (freezing, condensation, etc.).
 transitions = [
     { 'trigger': 'melt', 'source': 'solid', 'dest': 'liquid' },
     { 'trigger': 'evaporate', 'source': 'liquid', 'dest': 'gas' },
@@ -306,7 +306,7 @@ The following snippets illustrate several ways to achieve the same goal:
 
 ```python
 # import Machine and State class
-from tfsm import Machine, State
+from tfism import Machine, State
 
 # Create a list of 3 states to pass to the Machine
 # initializer. We can mix types; in this case, we
@@ -389,7 +389,7 @@ Now, any time `lump` transitions to state `A`, the `on_enter_A()` method defined
 You can make use of `on_final` callbacks which will be triggered when a state with `final=True` is entered.
 
 ```python
-from tfsm import Machine, State
+from tfism import Machine, State
 
 states = [State(name = 'idling'),
           State(name = 'rescuing_kitten'),
@@ -426,6 +426,264 @@ hero.intervene(offender_speed = 15)
 assert hero.machine.get_state(hero.state).final  # it's over
 assert hero.is_offender_gone()  # maybe next time ...
 ```
+
+#### <a name="state-pocket"></a>State Pocket
+
+Have you ever wanted to get a return value from a state transition? For example, when transitioning to 'saving the world' state, wouldn't it be nice to know how many villains were defeated or how much time was spent?
+
+**Problem:** State trigger functions don't have meaningful return values. This is because:
+- Callbacks are executed in groups (before, prepare, on_enter, after, etc.)
+- Complex calling chains exist with queued transitions and automatic state jumps
+- It's unclear which callback's return value should be returned
+
+**Solution:** Instead of complex return value collection, tfism provides a **"pocket"** feature - a temporary storage space on each State object where you can explicitly set values during the state's lifecycle.
+
+The pocket is like a small pocket on the State object (named after the Pokemon concept) that can hold anything you want. The key characteristics are:
+
+- **Explicit control**: You decide what goes into the pocket (usually in `on_enter` callbacks)
+- **Automatic cleanup**: Pocket is automatically cleared when the state exits
+- **State-scoped**: Each state has its own independent pocket
+- **Type-flexible**: Can store any Python object (strings, dicts, custom objects, etc.)
+
+##### Basic Usage
+
+Let's enhance our `NarcolepticSuperhero` to track mission statistics:
+
+```python
+from tfism import Machine
+
+
+class NarcolepticSuperhero(object):
+    states = ['asleep', 'hanging out', 'hungry', 'sweaty', 'saving the world']
+
+    def __init__(self, name):
+        self.name = name
+        self.kittens_rescued = 0
+
+        # Initialize the state machine with send_event=True to access event_data
+        self.machine = Machine(
+            model=self,
+            states=NarcolepticSuperhero.states,
+            initial='asleep',
+            send_event=True,  # Required for accessing event_data.state
+            auto_transitions=True
+        )
+
+        # Add transitions
+        self.machine.add_transition('wake_up', 'asleep', 'hanging out')
+        self.machine.add_transition('work_out', 'hanging out', 'hungry')
+        self.machine.add_transition('eat', 'hungry', 'hanging out')
+        self.machine.add_transition('distress_call', '*', 'saving the world')
+        self.machine.add_transition('complete_mission', 'saving the world', 'sweaty')
+        self.machine.add_transition('clean_up', 'sweaty', 'asleep')
+        self.machine.add_transition('nap', '*', 'asleep')
+
+    def on_enter_saving_the_world(self, event_data):
+        """Store mission start time when entering saving_the_world state"""
+        import time
+        event_data.state.pocket = {
+            'start_time': time.time(),
+            'villains_defeated': 0,
+            'kittens_saved': 0
+        }
+
+    def on_exit_saving_the_world(self, event_data):
+        """Calculate mission duration in on_exit - pocket is still available!"""
+        import time
+        mission_data = event_data.state.pocket
+        if mission_data:
+            duration = time.time() - mission_data['start_time']
+            print(f"Mission completed in {duration:.2f} seconds")
+            # Pocket will be cleared automatically after this callback
+
+    def on_enter_hanging_out(self, event_data):
+        """Store relaxation activity"""
+        event_data.state.pocket = {'activity': 'chilling', 'energy_level': 100}
+
+
+# Usage
+>>> batman = NarcolepticSuperhero("Batman")
+>>> batman.wake_up()
+
+# Check pocket of 'hanging out' state
+>>> state = batman.machine.get_state('hanging out')
+>>> state.pocket
+{'activity': 'chilling', 'energy_level': 100}
+
+# Go save the world
+>>> batman.distress_call()
+>>> mission_state = batman.machine.get_state('saving the world')
+>>> mission_state.pocket['start_time']
+1703123456.789
+
+# Complete the mission (triggers on_exit)
+>>> batman.complete_mission()
+Mission completed in 12.34 seconds
+
+# Pocket is now cleared
+>>> batman.machine.get_state('saving the world').pocket
+None
+```
+
+##### Pocket Lifecycle
+
+The pocket follows a clear lifecycle tied to state transitions:
+
+1. **Initial value**: When a state is created, `pocket` is `None`
+2. **Setting values**: You set pocket values, typically in `on_enter` callbacks
+3. **Accessing values**: You can read pocket anytime the state is active
+4. **Automatic clearing**: Pocket is set to `None` when state exits (after `on_exit` callbacks)
+
+This means:
+- Pocket is **still available** in `on_exit` callbacks for cleanup/processing
+- Pocket is **cleared automatically** - no manual cleanup needed
+- Pocket is **None** when state is not active
+
+##### With AsyncMachine
+
+Pocket works seamlessly with async state machines:
+
+```python
+from tfism.extensions.asyncio import AsyncMachine
+import asyncio
+
+
+class AsyncHero:
+    def __init__(self):
+        self.machine = AsyncMachine(
+            model=self,
+            states=['idle', 'fighting', 'resting'],
+            initial='idle',
+            send_event=True,
+            auto_transitions=True
+        )
+
+    async def on_enter_fighting(self, event_data):
+        # Simulate async work and store result
+        await asyncio.sleep(0.1)
+        event_data.state.pocket = {
+            'enemies_defeated': 5,
+            'battle_duration': 10.5
+        }
+
+    async def on_exit_fighting(self, event_data):
+        # Pocket is still available here
+        result = event_data.state.pocket
+        await asyncio.sleep(0.05)  # Simulate cleanup
+        print(f"Battle summary: {result}")
+
+
+async def main():
+    hero = AsyncHero()
+    await hero.to_fighting()
+    # ... some time later ...
+    await hero.to_resting()
+    # Pocket cleared automatically
+
+
+asyncio.run(main())
+```
+
+##### With Hierarchical State Machines
+
+In nested state machines, each state has its own independent pocket:
+
+```python
+from tfism.extensions.nesting import HierarchicalMachine
+
+
+class ComplexHero:
+    def __init__(self):
+        states = [
+            'idle',
+            {
+                'name': 'active',
+                'children': [
+                    'patrolling',
+                    {
+                        'name': 'combat',
+                        'children': ['melee', 'ranged']
+                    }
+                ]
+            }
+        ]
+
+        self.machine = HierarchicalMachine(
+            model=self,
+            states=states,
+            initial='idle',
+            send_event=True,
+            auto_transitions=True
+        )
+
+    def on_enter_active(self, event_data):
+        event_data.state.pocket = {'mode': 'active', 'energy': 100}
+
+    def on_enter_active_combat(self, event_data):
+        event_data.state.pocket = {'enemies': 3, 'weapon_ready': True}
+
+    def on_enter_active_combat_melee(self, event_data):
+        event_data.state.pocket = {'damage': 50, 'hits': 0}
+
+
+# Usage
+>>> hero = ComplexHero()
+>>> hero.to_active()
+
+# Each level has its own pocket
+>>> hero.machine.get_state('active').pocket
+{'mode': 'active', 'energy': 100}
+
+>>> hero.to_active_combat_melee()
+
+# Parent states retain their pockets (they didn't exit)
+>>> hero.machine.get_state('active').pocket
+{'mode': 'active', 'energy': 100}
+
+>>> hero.machine.get_state('active_combat').pocket
+{'enemies': 3, 'weapon_ready': True}
+
+>>> hero.machine.get_state('active_combat_melee').pocket
+{'damage': 50, 'hits': 0}
+
+# Transition to sibling state
+>>> hero.to_active_patrol()
+
+# Only melee state exited and cleared pocket
+>>> hero.machine.get_state('active_combat_melee').pocket
+None
+
+# Parent states still have their pockets
+>>> hero.machine.get_state('active').pocket
+{'mode': 'active', 'energy': 100}
+```
+
+##### Best Practices
+
+1. **Use `send_event=True`**: To access `event_data.state.pocket` in callbacks, initialize the machine with `send_event=True`
+
+2. **Set pocket early**: Set pocket values in `on_enter` callbacks for consistency
+
+3. **Use meaningful data structures**: Store dicts or custom objects to keep related data together
+
+4. **Don't rely on pocket for critical state**: Pocket is temporary and cleared on exit, use model attributes for persistent state
+
+5. **Access via `machine.get_state()`**: To read a state's pocket from outside callbacks, use `machine.get_state('state_name').pocket`
+
+6. **Available in `on_exit`**: Pocket is still accessible in `on_exit` callbacks for final processing
+
+##### When to Use Pocket
+
+**Good use cases:**
+- Temporary computation results during state activation
+- Metrics specific to a state instance (e.g., time spent, items processed)
+- Debugging information during state lifecycle
+- Data that needs to be passed between callbacks in the same state
+
+**Not suitable for:**
+- Persistent model state (use model attributes instead)
+- Data that needs to survive state transitions (pocket is cleared on exit)
+- Cross-state communication (use model attributes or parameters instead)
 
 #### <a name="checking-state"></a>Checking state
 
@@ -468,7 +726,7 @@ If you favour stricter typing and more IDE code completion (or you just can't ty
 
 ```python
 import enum
-from tfsm import Machine
+from tfism import Machine
 
 
 class States(enum.Enum):
@@ -485,7 +743,7 @@ transitions = [['proceed', States.RED, States.YELLOW],
 m = Machine(states = States, transitions = transitions, initial = States.RED)
 assert m.is_RED()
 assert m.state is States.RED
-state = m.get_state(States.RED)  # get tfsm.State object
+state = m.get_state(States.RED)  # get tfism.State object
 print(state.name)  # >>> RED
 m.proceed()
 m.proceed()
@@ -675,14 +933,14 @@ machine.add_ordered_transitions()
 machine.next_state()
 print(machine.state)
 >>> 'B'
-# We can also define a different order of tfsm
+# We can also define a different order of tfism
 machine = Machine(states=states, initial='A')
 machine.add_ordered_transitions(['A', 'C', 'B'])
 machine.next_state()
 print(machine.state)
 >>> 'C'
 # Conditions can be passed to 'add_ordered_transitions' as well
-# If one condition is passed, it will be used for all tfsm
+# If one condition is passed, it will be used for all tfism
 machine = Machine(states=states, initial='A')
 machine.add_ordered_transitions(conditions='check')
 # If a list is passed, it must contain exactly as many elements as the
@@ -698,7 +956,7 @@ machine = Machine(states=states, initial='A')
 machine.add_ordered_transitions(loop=False)
 machine.next_state()
 machine.next_state()
-machine.next_state() # tfsm.core.MachineError: "Can't trigger event next_state from state C!"
+machine.next_state() # tfism.core.MachineError: "Can't trigger event next_state from state C!"
 ```
 
 #### <a name="queued-transitions"></a>Queued transitions
@@ -909,7 +1167,7 @@ Callbacks of `finalize_event` will be executed regardless of the success of the 
 Note that if an error occurred it will be attached to `event_data` as `error` and can be retrieved with `send_event=True`.
 
 ```python
-from tfsm import Machine
+from tfism import Machine
 
 
 class Matter(object):
@@ -940,7 +1198,7 @@ Sometimes things just don't work out as intended and we need to handle exception
 We can pass callbacks to `on_exception` to do this:
 
 ```python
-from tfsm import Machine
+from tfism import Machine
 
 
 class Matter(object):
@@ -970,7 +1228,7 @@ print(lump.state)
 As you have probably already realized, the standard way of passing callables to states, conditions and transitions is by name. When processing callbacks and conditions, `transitions` will use their name to retrieve the related callable from the model. If the method cannot be retrieved and it contains dots, `transitions` will treat the name as a path to a module function and try to import it. Alternatively, you can pass names of properties or attributes. They will be wrapped into functions but cannot receive event data for obvious reasons. You can also pass callables such as (bound) functions directly. As mentioned earlier, you can also pass lists/tuples of callables names to the callback parameters. Callbacks will be executed in the order they were added.
 
 ```python
-from tfsm import Machine
+from tfism import Machine
 from mod import imported_func
 
 import random
@@ -1168,7 +1426,7 @@ lump1.state
 lump2.state
 >>> 'liquid'
 
-# custom events as well as auto tfsm can be dispatched to all models
+# custom events as well as auto tfism can be dispatched to all models
 machine.dispatch("to_plasma")
 
 lump1.state
@@ -1223,8 +1481,8 @@ Transitions includes very rudimentary logging capabilities. A number of events �
 # Set up logging; The basic log level will be DEBUG
 import logging
 logging.basicConfig(level=logging.DEBUG)
-# Set tfsm' log level to INFO; DEBUG messages will be omitted
-logging.getLogger('tfsm').setLevel(logging.INFO)
+# Set tfism' log level to INFO; DEBUG messages will be omitted
+logging.getLogger('tfism').setLevel(logging.INFO)
 
 # Business as usual
 machine = Machine(states=states, transitions=transitions, initial='solid')
@@ -1263,7 +1521,7 @@ As you probably noticed, `transitions` uses some of Python's dynamic features to
 But don't worry!  You can use the machine constructor parameter `model_override` to change how models are decorated. If you set `model_override=True`, `transitions` will only override already defined methods. This prevents new methods from showing up at runtime and also allows you to define which helper methods you want to use.
 
 ```python
-from tfsm import Machine
+from tfism import Machine
 
 
 # Dynamic assignment
@@ -1301,14 +1559,14 @@ assert model.state == "B"
 ```
 
 If you want to use all the convenience functions and throw some callbacks into the mix, defining a model can get pretty complicated when you have a lot of states and transitions defined.
-The method `generate_base_model` in `tfsm` can generate a base model from a machine configuration to help you out with that.
+The method `generate_base_model` in `tfism` can generate a base model from a machine configuration to help you out with that.
 
 ```python
-from tfsm.experimental.utils import generate_base_model
+from tfism.experimental.utils import generate_base_model
 
 simple_config = {
     "states": ["A", "B"],
-    "tfsm": [
+    "tfism": [
         ["go", "A", "B"],
     ],
     "initial": "A",
@@ -1321,7 +1579,7 @@ with open("base_model.py", "w") as f:
     f.write(class_definition)
 
 # ... in another file
-from tfsm import Machine
+from tfism import Machine
 from base_model import BaseModel
 
 
@@ -1344,8 +1602,8 @@ As this is still a work in progress, you'll need to create a custom Machine clas
 ```python
 from enum import Enum
 
-from tfsm.experimental.utils import with_model_definitions, event, add_transitions, transition
-from tfsm import Machine
+from tfism.experimental.utils import with_model_definitions, event, add_transitions, transition
+from tfism import Machine
 
 
 class State(Enum):
@@ -1395,7 +1653,7 @@ There are two mechanisms to retrieve a state machine instance with the desired f
 The first approach makes use of the convenience `factory` with the four parameters `graph`, `nested`, `locked` or `asyncio` set to `True` if the feature is required:
 
 ```python
-from tfsm.extensions import MachineFactory
+from tfism.extensions import MachineFactory
 
 # create a machine with mixins
 diagram_cls = MachineFactory.get_predefined(graph = True)
@@ -1429,7 +1687,7 @@ However, classes can also be directly imported from `transitions.extensions`. Th
 To use a feature-rich state machine, one could write:
 
 ```python
-from tfsm.extensions import LockedHierarchicalGraphMachine as LHGMachine
+from tfism.extensions import LockedHierarchicalGraphMachine as LHGMachine
 
 machine = LHGMachine(model, states, transitions)
 ```
@@ -1438,11 +1696,11 @@ machine = LHGMachine(model, states, transitions)
 
 Transitions includes an extension module which allows nesting states.
 This allows us to create contexts and to model cases where states are related to certain subtasks in the state machine.
-To create a nested state, either import `NestedState` from tfsm or use a dictionary with the initialization arguments `name` and `children`.
+To create a nested state, either import `NestedState` from tfism or use a dictionary with the initialization arguments `name` and `children`.
 Optionally, `initial` can be used to define a sub state to transit to, when the nested state is entered.
 
 ```python
-from tfsm.extensions import HierarchicalMachine
+from tfism.extensions import HierarchicalMachine
 
 states = ['standing', 'walking', {'name': 'caffeinated', 'children': ['dithering', 'running']}]
 transitions = [
@@ -1496,8 +1754,8 @@ Note that your previously created state object _must be_ a `NestedState` or a de
 The standard `State` class used in simple `Machine` instances lacks features required for nesting.
 
 ```python
-from tfsm.extensions.nesting import HierarchicalMachine, NestedState
-from tfsm import State
+from tfism.extensions.nesting import HierarchicalMachine, NestedState
+from tfism import State
 
 m = HierarchicalMachine(states = ['A'], initial = 'initial')
 m.add_state('B')  # fine
@@ -1522,8 +1780,8 @@ You can even use fancy unicode characters if you use Python 3.
 Setting the separator to something else than underscore changes some of the behaviour (auto_transition and setting callbacks) though:
 
 ```python
-from tfsm.extensions import HierarchicalMachine
-from tfsm.extensions.nesting import NestedState
+from tfism.extensions import HierarchicalMachine
+from tfism.extensions.nesting import NestedState
 
 NestedState.separator = '↦'
 states = ['A', 'B',
@@ -1537,7 +1795,7 @@ transitions = [
     ['reset', 'C↦2', 'C']  # overwriting parent reset
 ]
 
-# we rely on auto tfsm
+# we rely on auto tfism
 machine = HierarchicalMachine(states = states, transitions = transitions, initial = 'A')
 machine.to_B()  # exit state A, enter state B
 machine.to_C()  # exit B, enter C
@@ -1587,36 +1845,36 @@ This involves some tweaks based on community feedback.
 To get an idea of processing order and configuration have a look at the following example:
 
 ```python
-from tfsm.extensions.nesting import HierarchicalMachine
+from tfism.extensions.nesting import HierarchicalMachine
 import logging
 
 states = ['A', 'B', {'name': 'C', 'parallel': [{'name': '1', 'children': ['a', 'b', 'c'], 'initial': 'a',
-                                                'tfsm': [['go', 'a', 'b']]},
+                                                'tfism': [['go', 'a', 'b']]},
                                                {'name': '2', 'children': ['x', 'y', 'z'], 'initial': 'z'}],
-                     'tfsm': [['go', '2_z', '2_x']]}]
+                     'tfism': [['go', '2_z', '2_x']]}]
 
 transitions = [['reset', 'C_1_b', 'B']]
 logging.basicConfig(level = logging.INFO)
 machine = HierarchicalMachine(states = states, transitions = transitions, initial = 'A')
 machine.to_C()
-# INFO:tfsm.extensions.nesting:Exited state A
-# INFO:tfsm.extensions.nesting:Entered state C
-# INFO:tfsm.extensions.nesting:Entered state C_1
-# INFO:tfsm.extensions.nesting:Entered state C_2
-# INFO:tfsm.extensions.nesting:Entered state C_1_a
-# INFO:tfsm.extensions.nesting:Entered state C_2_z
+# INFO:tfism.extensions.nesting:Exited state A
+# INFO:tfism.extensions.nesting:Entered state C
+# INFO:tfism.extensions.nesting:Entered state C_1
+# INFO:tfism.extensions.nesting:Entered state C_2
+# INFO:tfism.extensions.nesting:Entered state C_1_a
+# INFO:tfism.extensions.nesting:Entered state C_2_z
 machine.go()
-# INFO:tfsm.extensions.nesting:Exited state C_1_a
-# INFO:tfsm.extensions.nesting:Entered state C_1_b
-# INFO:tfsm.extensions.nesting:Exited state C_2_z
-# INFO:tfsm.extensions.nesting:Entered state C_2_x
+# INFO:tfism.extensions.nesting:Exited state C_1_a
+# INFO:tfism.extensions.nesting:Entered state C_1_b
+# INFO:tfism.extensions.nesting:Exited state C_2_z
+# INFO:tfism.extensions.nesting:Entered state C_2_x
 machine.reset()
-# INFO:tfsm.extensions.nesting:Exited state C_1_b
-# INFO:tfsm.extensions.nesting:Exited state C_2_x
-# INFO:tfsm.extensions.nesting:Exited state C_1
-# INFO:tfsm.extensions.nesting:Exited state C_2
-# INFO:tfsm.extensions.nesting:Exited state C
-# INFO:tfsm.extensions.nesting:Entered state B
+# INFO:tfism.extensions.nesting:Exited state C_1_b
+# INFO:tfism.extensions.nesting:Exited state C_2_x
+# INFO:tfism.extensions.nesting:Exited state C_1
+# INFO:tfism.extensions.nesting:Exited state C_2
+# INFO:tfism.extensions.nesting:Exited state C
+# INFO:tfism.extensions.nesting:Entered state B
 ```
 
 When using `parallel` instead of `children`, `transitions` will enter all states of the passed list at the same time.
@@ -1641,7 +1899,7 @@ You can make use of `on_final` callbacks either in states or on the HSM itself. 
 
 
 ```python
-from tfsm.extensions import HierarchicalMachine
+from tfism.extensions import HierarchicalMachine
 from functools import partial
 
 
@@ -1657,13 +1915,13 @@ def final_event_raised(name):
 
 
 states = ['A', {'name': 'B', 'parallel': [{'name': 'X', 'final': True, 'on_final': partial(final_event_raised, 'X')},
-                                          {'name': 'Y', 'tfsm': [['final_Y', 'yI', 'yII']],
+                                          {'name': 'Y', 'tfism': [['final_Y', 'yI', 'yII']],
                                            'initial': 'yI',
                                            'on_final': partial(final_event_raised, 'Y'),
                                            'states':
                                                ['yI', {'name': 'yII', 'final': True}]
                                            },
-                                          {'name': 'Z', 'tfsm': [['final_Z', 'zI', 'zII']],
+                                          {'name': 'Z', 'tfism': [['final_Z', 'zI', 'zII']],
                                            'initial': 'zI',
                                            'on_final': partial(final_event_raised, 'Z'),
                                            'states':
@@ -1756,7 +2014,7 @@ If 'counter' had no 'done' state, we could just add `['done', 'counter_3', 'wait
 In cases where you want states and transitions to be copied by value rather than reference (for instance, if you want to keep the pre-0.8 behaviour) you can do so by creating a `NestedState` and assigning deep copies of the machine's events and states to it.
 
 ```python
-from tfsm.extensions.nesting import NestedState
+from tfism.extensions.nesting import NestedState
 from copy import deepcopy
 
 # ... configuring and creating counter
@@ -1778,7 +2036,7 @@ If both are present, only `children` will be considered.
 counter_conf = {
     'name': 'counting',
     'states': ['1', '2', '3', 'done'],
-    'tfsm': [
+    'tfism': [
         ['increase', '1', '2'],
         ['increase', '2', '3'],
         ['decrease', '3', '2'],
@@ -1792,7 +2050,7 @@ counter_conf = {
 collector_conf = {
     'name': 'collector',
     'states': ['waiting', 'collecting', counter_conf],
-    'tfsm': [
+    'tfism': [
         ['collect', '*', 'collecting'],
         ['wait', '*', 'waiting'],
         ['count', 'collecting', 'counting']
@@ -1820,17 +2078,17 @@ Transitions can generate basic state diagrams displaying all valid transitions b
 The basic diagram support generates a [mermaid](https://mermaid.js.org) state machine definition which can be used with mermaid's [live editor](https://mermaid.live), in markdown files in GitLab or GitHub and other web services.
 For instance, this code:
 ```python
-from tfsm.extensions.diagrams import HierarchicalGraphMachine
+from tfism.extensions.diagrams import HierarchicalGraphMachine
 import pyperclip
 
 states = ['A', 'B', {'name': 'C',
                      'final': True,
                      'parallel': [{'name': '1', 'children': ['a', {"name": "b", "final": True}],
                                    'initial': 'a',
-                                   'tfsm': [['go', 'a', 'b']]},
+                                   'tfism': [['go', 'a', 'b']]},
                                   {'name': '2', 'children': ['a', {"name": "b", "final": True}],
                                    'initial': 'a',
-                                   'tfsm': [['go', 'a', 'b']]}]}]
+                                   'tfism': [['go', 'a', 'b']]}]}]
 transitions = [['reset', 'C', 'A'], ["init", "A", "B"], ["do", "B", "C"]]
 
 m = HierarchicalGraphMachine(states = states, transitions = transitions, initial = "A", show_conditions = True,
@@ -1898,7 +2156,7 @@ To generate graphs with the package `graphviz`, you need to install [Graphviz](h
 Now you can install the actual Python packages
 
     pip install graphviz pygraphviz  # install graphviz and/or pygraphviz manually...
-    pip install tfsm[diagrams]  # ... or install tfsm with 'diagrams' extras which currently depends on pygraphviz
+    pip install tfism[diagrams]  # ... or install tfism with 'diagrams' extras which currently depends on pygraphviz
 
 Currently, `GraphMachine` will use `pygraphviz` when available and fall back to `graphviz` when `pygraphviz` cannot be
 found.
@@ -1908,16 +2166,16 @@ Note that this default might change in the future and `pygraphviz` support may b
 With `Model.get_graph()` you can get the current graph or the region of interest (roi) and draw it like this:
 
 ```python
-# import tfsm
+# import tfism
 
-from tfsm.extensions import GraphMachine
+from tfism.extensions import GraphMachine
 
 m = Model()
 # without further arguments pygraphviz will be used
 machine = GraphMachine(model = m, ...)
 # when you want to use graphviz explicitly
 machine = GraphMachine(model = m, graph_engine = "graphviz", ...)
-# in cases where auto tfsm should be visible
+# in cases where auto tfism should be visible
 machine = GraphMachine(model = m, show_auto_transitions = True, ...)
 
 # draw the whole graph ...
@@ -1952,7 +2210,7 @@ assert result == b.getvalue()
 References and partials passed as callbacks will be resolved as good as possible:
 
 ```python
-from tfsm.extensions import GraphMachine
+from tfism.extensions import GraphMachine
 from functools import partial
 
 
@@ -1988,7 +2246,7 @@ In cases where event dispatching is done in threads, one can use either `LockedM
 This does not save you from corrupting your machine by tinkering with member variables of your model or state machine.
 
 ```python
-from tfsm.extensions import LockedMachine
+from tfism.extensions import LockedMachine
 from threading import Thread
 import time
 
@@ -2009,7 +2267,7 @@ machine.new_attrib = 42  # not synchronized! will mess with execution order
 Any python context manager can be passed in via the `machine_context` keyword argument:
 
 ```python
-from tfsm.extensions import LockedMachine
+from tfism.extensions import LockedMachine
 from threading import RLock
 
 states = ['A', 'B', 'C']
@@ -2039,7 +2297,7 @@ You can mix synchronous and asynchronous callbacks if you like but this may have
 Note that events need to be awaited and the event loop must also be handled by you.
 
 ```python
-from tfsm.extensions.asyncio import AsyncMachine
+from tfism.extensions.asyncio import AsyncMachine
 import asyncio
 import time
 
@@ -2147,8 +2405,8 @@ If your superheroes need some custom behaviour, you can throw in some extra func
 
 ```python
 from time import sleep
-from tfsm import Machine
-from tfsm.extensions.states import add_state_features, Tags, Timeout
+from tfism import Machine
+from tfism.extensions.states import add_state_features, Tags, Timeout
 
 
 @add_state_features(Tags, Timeout)
@@ -2218,7 +2476,7 @@ This might be a reason to write a dedicated custom state class instead.
 Depending on the chosen state machine, your custom state class may need to provide certain state features. For instance, `HierarchicalMachine` requires your custom state to be an instance of `NestedState` (`State` is not sufficient). To inject your states you can either assign them to your `Machine`'s class attribute `state_cls` or override `Machine.create_state` in case you need some specific procedures done whenever a state is created:
 
 ```python
-from tfsm import Machine, State
+from tfism import Machine, State
 
 
 class MyState(State):
@@ -2243,8 +2501,8 @@ If you want to avoid threads in your `AsyncMachine` entirely, you can replace th
 
 ```python
 import asyncio
-from tfsm.extensions.states import add_state_features
-from tfsm.extensions.asyncio import AsyncTimeout, AsyncMachine
+from tfism.extensions.states import add_state_features
+from tfism.extensions.asyncio import AsyncTimeout, AsyncMachine
 
 
 @add_state_features(AsyncTimeout)

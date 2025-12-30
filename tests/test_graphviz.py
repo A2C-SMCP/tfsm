@@ -4,8 +4,8 @@ import sys
 import tempfile
 from unittest import TestCase, skipIf
 
-from tfsm.extensions import GraphMachine, HierarchicalGraphMachine, LockedGraphMachine, LockedHierarchicalGraphMachine
-from tfsm.extensions.states import Tags, Timeout, add_state_features
+from tfism.extensions import GraphMachine, HierarchicalGraphMachine, LockedGraphMachine, LockedHierarchicalGraphMachine
+from tfism.extensions.states import Tags, Timeout, add_state_features
 
 from .test_core import TYPE_CHECKING, TestTransitions
 from .utils import DummyModel, Stuff
@@ -20,7 +20,7 @@ if TYPE_CHECKING:
     from collections.abc import Collection, Sequence
     from typing import Dict, List, Literal, Optional, Type, Union
 
-    from tfsm.core import TransitionConfig, TransitionConfigDict
+    from tfism.core import TransitionConfig, TransitionConfigDict
 
 
 class TestDiagramsImport(TestCase):
@@ -291,8 +291,8 @@ class TestDiagrams(TestTransitions):
             from importlib import reload
             from unittest import mock  # will raise an ImportError in Python 2.7
 
-            from tfsm.extensions import diagrams_pygraphviz
-            from tfsm.extensions.diagrams_graphviz import Graph
+            from tfism.extensions import diagrams_pygraphviz
+            from tfism.extensions.diagrams_graphviz import Graph
 
             with mock.patch.dict("sys.modules", {"pygraphviz": None}):
                 # load and reload diagrams_pygraphviz to make sure

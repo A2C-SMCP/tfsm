@@ -1,9 +1,9 @@
 from time import sleep
 from unittest import TestCase, skipIf
 
-from tfsm import Machine, MachineError
-from tfsm.extensions import MachineFactory
-from tfsm.extensions.states import *
+from tfism import Machine, MachineError
+from tfism.extensions import MachineFactory
+from tfism.extensions.states import *
 
 from .test_core import TYPE_CHECKING
 from .test_graphviz import TestDiagramsLockedNested, pgv
@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
     from typing import Type
 
-    from tfsm.core import TransitionConfig
+    from tfism.core import TransitionConfig
 
 
 class TestTransitions(TestCase):
@@ -279,7 +279,7 @@ class TestCustomDynamicMethods(TestCase):
         not requiring callers to strip a prefix with [3:].
         """
 
-        from tfsm.core import State
+        from tfism.core import State
 
         # Custom State with a dynamic_method that doesn't start with 'on_'
         class CustomState(State):
@@ -313,7 +313,7 @@ class TestCustomDynamicMethods(TestCase):
     def test_standard_on_prefix_methods_still_work(self):
         """Test that standard dynamic_methods with 'on_' prefix still work correctly."""
 
-        from tfsm.core import State
+        from tfism.core import State
 
         # Standard State with 'on_' prefix methods
         state = State("test")
@@ -331,7 +331,7 @@ class TestCustomDynamicMethods(TestCase):
     def test_machine_integration_with_custom_dynamic_methods(self):
         """Test that custom dynamic_methods work correctly with Machine integration."""
 
-        from tfsm.core import State, Machine
+        from tfism.core import State, Machine
 
         # Custom State with a custom callback method
         class CustomState(State):

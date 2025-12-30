@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "tfsm"
+name = "tfism"
 version = "0.9.5"
 description = "A lightweight, object-oriented Python state machine implementation with many extensions."
 readme = "README.md"
@@ -61,23 +61,23 @@ mypy = [
 ]
 # All optional dependencies for development
 all = [
-    "tfsm[diagrams,dev,test,mypy]",
+    "tfism[diagrams,dev,test,mypy]",
 ]
 
 [project.urls]
-Homepage = "http://github.com/pytransitions/tfsm"
-Documentation = "https://github.com/pytransitions/tfsm"
-Repository = "https://github.com/pytransitions/tfsm"
-"Bug Tracker" = "https://github.com/pytransitions/tfsm/issues"
-"Source Code" = "https://github.com/pytransitions/tfsm"
-Download = "https://github.com/pytransitions/tfsm/archive/%s.tar.gz"
+Homepage = "http://github.com/pytransitions/tfism"
+Documentation = "https://github.com/pytransitions/tfism"
+Repository = "https://github.com/pytransitions/tfism"
+"Bug Tracker" = "https://github.com/pytransitions/tfism/issues"
+"Source Code" = "https://github.com/pytransitions/tfism"
+Download = "https://github.com/pytransitions/tfism/archive/%s.tar.gz"
 
 [tool.hatch.build.targets.wheel]
-packages = ["tfsm"]
+packages = ["tfism"]
 
 [tool.hatch.build.targets.wheel.shared-data]
-"tfsm/py.typed" = "tfsm/py.typed"
-"tfsm/data" = "tfsm/data"
+"tfism/py.typed" = "tfism/py.typed"
+"tfism/data" = "tfism/data"
 
 [tool.hatch.build.targets.sdist]
 exclude = [
@@ -96,10 +96,10 @@ exclude = [
 
 [tool.hatch.build]
 include = [
-    "tfsm/**/*.py",
-    "tfsm/**/*.pyi",
-    "tfsm/py.typed",
-    "tfsm/data/**",
+    "tfism/**/*.py",
+    "tfism/**/*.pyi",
+    "tfism/py.typed",
+    "tfism/data/**",
 ]
 
 [dependency-groups]
@@ -135,7 +135,7 @@ ignore_missing_imports = false
 
 # Per-module overrides
 [[tool.mypy.overrides]]
-module = "tfsm.*"
+module = "tfism.*"
 disallow_untyped_defs = false
 check_untyped_defs = false
 
@@ -157,18 +157,18 @@ install-all = "uv pip install -e '.[all]'"
 
 # Test tasks
 test = "uv run pytest -n auto tests/"
-test-cov = "uv run pytest --cov=tfsm --cov-report=html --cov-report=term --cov-report=xml tests/"
+test-cov = "uv run pytest --cov=tfism --cov-report=html --cov-report=term --cov-report=xml tests/"
 test-no-diagrams = "uv run pytest -n auto tests/ --ignore=tests/test_codestyle.py"
 
 # Type checking
-mypy = "uv run mypy --config-file mypy.ini --strict tfsm"
+mypy = "uv run mypy --config-file mypy.ini --strict tfism"
 codestyle = "uv run pytest tests/test_codestyle.py"
 typecheck = ["mypy", "codestyle"]
 
 # Code quality
-lint = "uv run ruff check tfsm/"
-format = "uv run ruff format tfsm/"
-format-check = "uv run ruff format --check tfsm/"
+lint = "uv run ruff check tfism/"
+format = "uv run ruff format tfism/"
+format-check = "uv run ruff format --check tfism/"
 
 # Nox sessions
 nox = "uv run nox"
@@ -211,7 +211,7 @@ serve-docs = "uv run mkdocs serve"
 help = "uv run poe --help"
 
 [tool.coverage.run]
-source = ["tfsm"]
+source = ["tfism"]
 omit = ["*/tests/*", "*/test_*"]
 
 [tool.coverage.report]

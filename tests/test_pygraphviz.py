@@ -1,6 +1,6 @@
 from unittest import skipIf
 
-from tfsm.extensions.states import Tags, Timeout, add_state_features
+from tfism.extensions.states import Tags, Timeout, add_state_features
 
 from .test_graphviz import TestDiagrams, TestDiagramsImport, TestDiagramsNested
 from .utils import Stuff

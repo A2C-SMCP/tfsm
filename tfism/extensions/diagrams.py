@@ -17,7 +17,7 @@ import warnings
 from functools import partial
 from typing import Any
 
-from tfsm import Transition
+from tfism import Transition
 
 from ..core import EventData, listify
 from .markup import HierarchicalMarkupMachine, MarkupMachine

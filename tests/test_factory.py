@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from tfsm.extensions import MachineFactory
+from tfism.extensions import MachineFactory
 
 
 class TestFactory(TestCase):

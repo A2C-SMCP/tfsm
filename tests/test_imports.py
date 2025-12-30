@@ -1,6 +1,6 @@
 def test_imports() -> None:
-    from tfsm import Machine
-    from tfsm.extensions import (
+    from tfism import Machine
+    from tfism.extensions import (
         GraphMachine,
         HierarchicalGraphMachine,
         HierarchicalMachine,
@@ -13,6 +13,6 @@ def test_imports() -> None:
 
     try:
         # only available for Python 3
-        from tfsm.extensions import AsyncGraphMachine, AsyncMachine, HierarchicalAsyncGraphMachine, HierarchicalAsyncMachine
+        from tfism.extensions import AsyncGraphMachine, AsyncMachine, HierarchicalAsyncGraphMachine, HierarchicalAsyncMachine
     except (ImportError, SyntaxError):  # pragma: no cover
         pass

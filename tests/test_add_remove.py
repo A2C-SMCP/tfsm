@@ -3,7 +3,7 @@ import threading
 import weakref
 from unittest import TestCase
 
-from tfsm import Machine
+from tfism import Machine
 
 
 class Dummy:

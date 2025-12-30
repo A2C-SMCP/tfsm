@@ -15,7 +15,7 @@ from functools import partial
 from threading import Lock, get_ident
 from typing import Any
 
-from tfsm.core import Event, Machine, listify
+from tfism.core import Event, Machine, listify
 
 _LOGGER = logging.getLogger(__name__)
 _LOGGER.addHandler(logging.NullHandler())

@@ -1,8 +1,8 @@
-# tfsm 内部类型安全改进计划
+# tfism 内部类型安全改进计划
 
 ## 文档概述
 
-本文档分析 `tfsm` 项目的内部类型安全现状，并提出系统性改进方案。**内部类型安全**是指项目自定义代码的类型安全，不包括状态机框架自动注入到用户模型的动态属性（如自动生成的触发方法）。
+本文档分析 `tfism` 项目的内部类型安全现状，并提出系统性改进方案。**内部类型安全**是指项目自定义代码的类型安全，不包括状态机框架自动注入到用户模型的动态属性（如自动生成的触发方法）。
 
 ## 1. 当前状态（2025-12）
 
@@ -160,7 +160,7 @@
 **实施方案**:
 
 ```python
-# tfsm/core.py
+# tfism/core.py
 from typing import Protocol
 
 class StateSeparator(Protocol):
@@ -186,7 +186,7 @@ def process_state(machine: Machine, state_cls: StateSeparator) -> None:
 **实施方案**:
 
 ```python
-# tfsm/extensions/nesting.py
+# tfism/extensions/nesting.py
 from typing import TypeGuard, Union
 
 def _is_nested_state(state: Union[State, NestedState]) -> TypeGuard[NestedState]:
@@ -209,7 +209,7 @@ def process(state: Union[State, NestedState]) -> None:
 **实施方案**:
 
 ```python
-# tfsm/extensions/nesting.py
+# tfism/extensions/nesting.py
 from typing import TypedDict, TypeAlias
 
 # 定义明确的上下文类型
@@ -235,7 +235,7 @@ self.scoped, self.states, self.events, self.prefix_path = context
 **实施方案**:
 
 ```python
-# tfsm/extensions/asyncio.py
+# tfism/extensions/asyncio.py
 from typing import Coroutine, Any
 
 # 将 callbacks 等函数的返回类型统一声明为 Coroutine[Any, Any, None]
@@ -263,7 +263,7 @@ async def callbacks(
 **实施方案**:
 
 ```python
-# tfsm/core.py
+# tfism/core.py
 from typing import TypeVar, Generic, Callable, Awaitable
 
 T = TypeVar('T', bool, Awaitable[bool])
@@ -276,14 +276,14 @@ class BaseMachine(Generic[T], ABC):
         """派发事件，返回类型取决于 T"""
         ...
 
-# tfsm/core.py (同步实现)
+# tfism/core.py (同步实现)
 class SyncMachine(BaseMachine[bool]):
     """同步状态机"""
     def dispatch(self, *args: Any, **kwargs: Any) -> bool:
         # 同步实现
         ...
 
-# tfsm/extensions/asyncio.py (异步实现)
+# tfism/extensions/asyncio.py (异步实现)
 class AsyncMachine(BaseMachine[Awaitable[bool]]):
     """异步状态机"""
     async def dispatch(self, *args: Any, **kwargs: Any) -> bool:
@@ -325,7 +325,7 @@ class AsyncMachine(BaseMachine[Awaitable[bool]]):
 **实施方案**:
 
 ```python
-# tfsm/extensions/nesting.py
+# tfism/extensions/nesting.py
 from typing import TypeVar, Union
 
 S = TypeVar('S', bound=State)
@@ -359,7 +359,7 @@ class HierarchicalMachine(Machine):
 **实施方案**:
 
 ```python
-# tfsm/extensions/nesting.py
+# tfism/extensions/nesting.py
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -610,10 +610,10 @@ show_column_numbers = True
 pretty = True
 
 # 每个模块的特定配置
-[mypy-tfsm.extensions.asyncio]
+[mypy-tfism.extensions.asyncio]
 disable_error_code = ["override"]  # 临时禁用 override 错误
 
-[mypy-tfsm.extensions.nesting]
+[mypy-tfism.extensions.nesting]
 disable_error_code = ["union-attr"]  # 临时禁用 union-attr 错误
 ```
 
@@ -634,10 +634,10 @@ jobs:
         with:
           python-version: '3.11'
       - run: pip install -r requirements-dev.txt
-      - run: mypy --config-file mypy.ini --strict tfsm
+      - run: mypy --config-file mypy.ini --strict tfism
       - run: |
           # 检查 type ignore 数量
-          count=$(grep -r "# type: ignore" tfsm/ | wc -l)
+          count=$(grep -r "# type: ignore" tfism/ | wc -l)
           echo "Current type ignore count: $count"
           if [ $count -gt 150 ]; then
             echo "Too many type ignores! Current: $count, Target: <= 150"
@@ -649,19 +649,19 @@ jobs:
 
 ```bash
 # 开发时运行类型检查
-uv run mypy --config-file mypy.ini --strict tfsm
+uv run mypy --config-file mypy.ini --strict tfism
 
 # 监视模式（需要 mypy-watch）
-uv run mypy --config-file mypy.ini --strict tfsm --watch
+uv run mypy --config-file mypy.ini --strict tfism --watch
 
 # 提交前检查
-uv run mypy --config-file mypy.ini --strict tfsm && uv run pytest
+uv run mypy --config-file mypy.ini --strict tfism && uv run pytest
 
 # 统计 type ignore 数量
-grep -r "# type: ignore" tfsm/ | wc -l
+grep -r "# type: ignore" tfism/ | wc -l
 
 # 按错误类型统计
-grep -r "# type: ignore" tfsm/ | grep -o "\[.*\]" | sort | uniq -c
+grep -r "# type: ignore" tfism/ | grep -o "\[.*\]" | sort | uniq -c
 ```
 
 ## 7. 相关资源
@@ -675,7 +675,7 @@ grep -r "# type: ignore" tfsm/ | grep -o "\[.*\]" | sort | uniq -c
 
 ## 8. 总结
 
-当前 `tfsm` 项目已达到良好的类型安全水平：
+当前 `tfism` 项目已达到良好的类型安全水平：
 - ✅ 通过 mypy strict 检查
 - ✅ 100% 类型注解覆盖
 - ✅ 所有功能测试通过

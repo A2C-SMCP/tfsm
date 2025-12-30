@@ -2,8 +2,8 @@ from collections import defaultdict, deque
 from collections.abc import Callable
 from typing import Any
 
-from tfsm.core import Machine, listify
-from tfsm.extensions.markup import HierarchicalMarkupMachine, MarkupMachine
+from tfism.core import Machine, listify
+from tfism.extensions.markup import HierarchicalMarkupMachine, MarkupMachine
 
 _placeholder_body = "raise RuntimeError('This should be overridden')"
 
@@ -91,7 +91,7 @@ from abc import ABCMeta, abstractmethod
 from typing import Any, Callable, Dict, List, Optional, TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from tfsm.core import CallbacksArg, StateIdentifier, EventData
+    from tfism.core import CallbacksArg, StateIdentifier, EventData
 
 
 class BaseModel(metaclass=ABCMeta):
