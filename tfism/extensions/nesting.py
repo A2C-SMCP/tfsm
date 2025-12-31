@@ -582,7 +582,7 @@ class HierarchicalMachine(Machine):
         if states is None:
             states = self.get_nested_state_names()
         super().add_ordered_transitions(
-            states=states,  # type: ignore[arg-type]
+            states=states,
             trigger=trigger,
             loop=loop,
             loop_includes_initial=loop_includes_initial,

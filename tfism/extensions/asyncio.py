@@ -69,7 +69,7 @@ import logging
 import sys
 import warnings
 from collections import deque
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from functools import partial, reduce
 from typing import Any, Optional
 
@@ -832,7 +832,7 @@ class AsyncMachine(Machine):
     def __init__(
         self,
         model: Any = Machine.self_literal,
-        states: list[Any] | None = None,
+        states: Sequence[Any] | None = None,
         initial: str = "initial",
         transitions: list[Any] | None = None,
         send_event: bool = False,

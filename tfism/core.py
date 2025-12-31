@@ -11,7 +11,7 @@ import itertools
 import logging
 import warnings
 from collections import OrderedDict, defaultdict, deque
-from collections.abc import Callable, Collection
+from collections.abc import Callable, Collection, Sequence
 from enum import Enum, EnumMeta
 from functools import partial
 from typing import Any, TypeAlias, Union, cast
@@ -585,7 +585,7 @@ class Machine:
     def __init__(
         self,
         model: Any = "self",
-        states: Union[list[StateName], "OrderedDict[StateName, State]"] | None = None,
+        states: Union[Sequence[StateName], "OrderedDict[StateName, State]"] | None = None,
         initial: StateName = "initial",
         transitions: list[Any] | None = None,
         send_event: bool = False,
@@ -922,7 +922,7 @@ class Machine:
 
     def add_states(
         self,
-        states: Union[list[StateName], StateName, "OrderedDict[StateName, State]", dict[str, Any], State],
+        states: Union[Sequence[StateName], StateName, "OrderedDict[StateName, State]", dict[str, Any], State],
         on_enter: str | CallbackList | None = None,
         on_exit: str | CallbackList | None = None,
         ignore_invalid_triggers: bool | None = None,
@@ -1164,7 +1164,7 @@ class Machine:
 
     def add_ordered_transitions(
         self,
-        states: list[StateName] | None = None,
+        states: Sequence[StateName] | None = None,
         trigger: str = "next_state",
         loop: bool = True,
         loop_includes_initial: bool = True,
@@ -1205,6 +1205,8 @@ class Machine:
         """
         if states is None:
             states = list(self.states.keys())  # need to listify for Python3
+        else:
+            states = list(states)  # convert Sequence to list for mutable operations
         len_transitions = len(states)
         if len_transitions < 2:
             raise ValueError("Can't create ordered tfsm on a Machine with fewer than 2 states.")
