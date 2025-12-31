@@ -274,6 +274,97 @@ class TestStatePocket(unittest.TestCase):
         # Pocket should be cleared
         self.assertIsNone(state_a.pocket)
 
+    def test_state_instance_consistency(self):
+        """Test that get_state() and event_data.state return the same instance"""
+        captured_states = {}
+
+        class Model:
+            def check_event_data_state(self, event_data):
+                # Capture the state instance from event_data
+                captured_states['event_data_state'] = event_data.state
+                # Set pocket to verify it's the same instance
+                event_data.state.pocket = "data from callback"
+
+        model = Model()
+        m = self.machine_cls(
+            model=model,
+            states=['A', 'B'],
+            initial='A',
+            send_event=True
+        )
+
+        # Get state instance before callback
+        state_a_before = m.get_state('A')
+        captured_states['before'] = state_a_before
+        self.assertIsNone(state_a_before.pocket)
+
+        # Add callback and trigger state transition
+        m.add_states('A', on_enter=model.check_event_data_state)
+        model.to_B()  # Exit A
+        model.to_A()  # Enter A again, triggering callback
+
+        # Get state instance after callback
+        state_a_after = m.get_state('A')
+        captured_states['after'] = state_a_after
+
+        # All should be the same instance
+        self.assertIs(
+            captured_states['before'],
+            captured_states['event_data_state'],
+            "get_state() and event_data.state should return the same instance"
+        )
+        self.assertIs(
+            captured_states['before'],
+            captured_states['after'],
+            "get_state() should return the same instance across calls"
+        )
+
+        # Pocket should be preserved (same instance)
+        self.assertEqual(state_a_after.pocket, "data from callback")
+
+    def test_add_states_does_not_replace_instance(self):
+        """Test that add_states() updates existing state instead of replacing it"""
+        m = self.machine_cls(states=['A'], initial='A')
+
+        # Get original state instance
+        state_a_original = m.get_state('A')
+        state_a_original.pocket = "original data"
+
+        # Add callback to existing state (should not replace instance)
+        def on_enter_callback(event_data):
+            event_data.state.pocket = "updated in callback"
+
+        m.add_states('A', on_enter=on_enter_callback)
+
+        # Get state again - should be the same instance
+        state_a_after = m.get_state('A')
+
+        self.assertIs(
+            state_a_original,
+            state_a_after,
+            "add_states() should not replace existing state instance"
+        )
+
+        # Pocket data should be preserved
+        self.assertEqual(state_a_after.pocket, "original data")
+
+        # Callback should be added
+        self.assertEqual(len(state_a_after.on_enter), 1)
+
+        # Test with dict definition
+        m.add_states({'name': 'A', 'on_exit': lambda event_data: None})
+
+        # Still the same instance
+        state_a_final = m.get_state('A')
+        self.assertIs(
+            state_a_original,
+            state_a_final,
+            "add_states() with dict should not replace existing state instance"
+        )
+
+        # on_exit should be added
+        self.assertEqual(len(state_a_final.on_exit), 1)
+
 
 if __name__ == "__main__":
     unittest.main()

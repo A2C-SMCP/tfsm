@@ -1388,3 +1388,69 @@ class TestTransitions(TestCase):
         assert trans[0].my_int == 23
         assert trans[0].my_dict == {"baz": "bar"}
         assert trans[0].my_none is None
+
+
+class TestMachineFallbackStates(TestCase):
+    """Test fallback logic (implicit str conversion) for base Machine class only.
+
+    These tests are separated from TestTransitions to avoid being inherited by
+    subclasses (HierarchicalMachine, AsyncMachine, etc.) which have different
+    add_states implementations and don't support the fallback logic.
+    """
+
+    def test_add_states_fallback_maintains_instance_consistency(self):
+        """Test that fallback logic maintains state instance consistency"""
+        m = Machine(states=['A'], initial='A')
+
+        # First add: use int (implicit str conversion)
+        m.add_states(123)
+        state_123_first = m.get_state('123')
+        state_123_first.pocket = "first data"
+
+        # Second add: use same int
+        m.add_states(123)
+        state_123_second = m.get_state('123')
+
+        # Should be the same instance
+        self.assertIs(state_123_first, state_123_second)
+        # Pocket data should be preserved
+        self.assertEqual(state_123_second.pocket, "first data")
+
+    def test_add_states_fallback_with_mixed_types(self):
+        """Test that fallback maintains consistency when different types resolve to same state name"""
+        m = Machine(states=['A'], initial='A')
+
+        # First add: use string "123"
+        m.add_states('123')
+        state_123_str = m.get_state('123')
+        state_123_str.pocket = "string data"
+
+        # Second add: use int 123
+        m.add_states(123)
+        state_123_int = m.get_state('123')
+
+        # Should be the same instance
+        self.assertIs(state_123_str, state_123_int)
+        # Pocket data should be preserved
+        self.assertEqual(state_123_int.pocket, "string data")
+
+    def test_add_states_fallback_adds_callback_to_existing_state(self):
+        """Test that fallback can add callbacks to existing states"""
+        m = Machine(states=['A'], initial='A')
+
+        # First add: use int
+        m.add_states(123)
+        state_123 = m.get_state('123')
+        self.assertEqual(len(state_123.on_enter), 0)
+
+        # Second add: add callback
+        def callback(event_data):
+            pass
+
+        m.add_states(123, on_enter=callback)
+        state_123_after = m.get_state('123')
+
+        # Should be the same instance
+        self.assertIs(state_123, state_123_after)
+        # Callback should be added
+        self.assertEqual(len(state_123_after.on_enter), 1)

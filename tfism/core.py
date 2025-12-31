@@ -956,16 +956,10 @@ class Machine:
         # Convert to list to handle both list and tuple returns from listify
         states_list = list(listify(states))
 
-        for state in states_list:
-            if isinstance(state, (str, Enum)):
-                state = self._create_state(state, on_enter=on_enter, on_exit=on_exit, ignore_invalid_triggers=ignore, **kwargs)
-            elif isinstance(state, dict):
-                if "ignore_invalid_triggers" not in state:
-                    state["ignore_invalid_triggers"] = ignore
-                state = self._create_state(**state)
-            self.states[state.name] = state
-            for model in self.models:
-                self._add_model_to_state(state, model)
+        for state_item in states_list:
+            state = self._get_or_create_state(state_item, on_enter=on_enter, on_exit=on_exit, ignore_invalid_triggers=ignore, **kwargs)
+
+            # Setup auto-transitions if enabled
             if self.auto_transitions:
                 for a_state in self.states.keys():
                     # add all states as sources to auto tfsm 'to_<state>' with dest <state>
@@ -983,6 +977,150 @@ class Machine:
                         else:
                             method_name = "to_%s_%s" % (self.model_attribute, a_state)
                         self.add_transition(method_name, state.name, a_state)
+
+    def _get_or_create_state(
+        self,
+        state_item: Any,
+        on_enter: str | CallbackList | None = None,
+        on_exit: str | CallbackList | None = None,
+        ignore_invalid_triggers: bool | None = None,
+        **kwargs: Any,
+    ) -> State:
+        """Get existing state or create a new one, maintaining instance consistency.
+
+        This method centralizes the logic for handling different types of state definitions
+        (str, Enum, dict, State instances, and other types via fallback) while ensuring
+        that the same State instance is always returned for a given state name.
+
+        Args:
+            state_item: The state definition (str, Enum, dict, State instance, or other)
+            on_enter: Callbacks to trigger when entering the state
+            on_exit: Callbacks to trigger when exiting the state
+            ignore_invalid_triggers: Whether to ignore invalid triggers
+            **kwargs: Additional keyword arguments for state creation
+
+        Returns:
+            The State instance (either existing or newly created)
+        """
+        # Extract state name and check if it already exists
+        state_name = self._extract_state_name(state_item)
+        is_existing = state_name in self.states
+
+        if is_existing:
+            # Update existing state instead of creating a new one
+            return self._update_existing_state(
+                self.states[state_name], state_item, on_enter=on_enter, on_exit=on_exit, ignore_invalid_triggers=ignore_invalid_triggers
+            )
+        else:
+            # Create new state
+            return self._create_and_add_state(
+                state_item, on_enter=on_enter, on_exit=on_exit, ignore_invalid_triggers=ignore_invalid_triggers, **kwargs
+            )
+
+    @staticmethod
+    def _extract_state_name(state_item: Any) -> str:
+        """Extract the state name from various state definition types.
+
+        Args:
+            state_item: The state definition (str, Enum, dict, State, or other)
+
+        Returns:
+            The state name as a string
+        """
+        if isinstance(state_item, (str, Enum)):
+            return state_item.name if isinstance(state_item, Enum) else state_item
+        elif isinstance(state_item, dict):
+            # For dict, return name if present, otherwise empty string
+            # (empty string will never match an existing state)
+            name: str | None = state_item.get("name")
+            return name if name is not None else ""
+        elif isinstance(state_item, State):
+            return state_item.name
+        else:
+            # Fallback: rely on implicit str() conversion
+            return str(state_item)
+
+    @staticmethod
+    def _update_existing_state(
+        state: State,
+        state_item: Any,
+        on_enter: str | CallbackList | None = None,
+        on_exit: str | CallbackList | None = None,
+        ignore_invalid_triggers: bool | None = None,
+    ) -> State:
+        """Update an existing state's attributes.
+
+        Args:
+            state: The existing State instance to update
+            state_item: The original state definition (may contain update info)
+            on_enter: Callbacks to add to on_enter
+            on_exit: Callbacks to add to on_exit
+            ignore_invalid_triggers: Whether to ignore invalid triggers
+
+        Returns:
+            The updated State instance
+        """
+        # For dict types, merge callbacks from the dict
+        if isinstance(state_item, dict):
+            if "on_enter" in state_item:
+                state.on_enter = list(listify(state_item["on_enter"]))
+            if "on_exit" in state_item:
+                state.on_exit = list(listify(state_item["on_exit"]))
+            if "ignore_invalid_triggers" in state_item:
+                state.ignore_invalid_triggers = state_item["ignore_invalid_triggers"]
+        else:
+            # For other types, use the provided parameters
+            if on_enter is not None:
+                state.on_enter = list(listify(on_enter))
+            if on_exit is not None:
+                state.on_exit = list(listify(on_exit))
+            if ignore_invalid_triggers is not None:
+                state.ignore_invalid_triggers = ignore_invalid_triggers
+
+        return state
+
+    def _create_and_add_state(
+        self,
+        state_item: Any,
+        on_enter: str | CallbackList | None = None,
+        on_exit: str | CallbackList | None = None,
+        ignore_invalid_triggers: bool | None = None,
+        **kwargs: Any,
+    ) -> State:
+        """Create a new state and add it to the machine.
+
+        Args:
+            state_item: The state definition (str, Enum, dict, State, or other)
+            on_enter: Callbacks to trigger when entering the state
+            on_exit: Callbacks to trigger when exiting the state
+            ignore_invalid_triggers: Whether to ignore invalid triggers
+            **kwargs: Additional keyword arguments for state creation
+
+        Returns:
+            The newly created State instance
+        """
+        if isinstance(state_item, State):
+            # Use the provided State instance directly
+            state = state_item
+        elif isinstance(state_item, dict):
+            # Create from dict definition
+            if "ignore_invalid_triggers" not in state_item:
+                state_item["ignore_invalid_triggers"] = ignore_invalid_triggers
+            state = self._create_state(**state_item)
+        else:
+            # Create from str/Enum/fallback type
+            state = self._create_state(
+                state_item, on_enter=on_enter, on_exit=on_exit, ignore_invalid_triggers=ignore_invalid_triggers, **kwargs
+            )
+
+        # Add to machine's state collection
+        self.states[state.name] = state
+
+        # Bind to models
+        for model in self.models:
+            self._add_model_to_state(state, model)
+
+        return state
 
     def _add_model_to_state(self, state: State, model: Any) -> None:
         # Add convenience function 'is_<state_name>' (e.g. 'is_A') to the model.
