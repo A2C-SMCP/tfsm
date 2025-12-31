@@ -1,11 +1,11 @@
 # <a name="transitions-module"></a> tfism
 
-[![Version](https://img.shields.io/badge/version-v0.9.5.post2-orange.svg)](https://github.com/pytransitions/tfism)
+[![Version](https://img.shields.io/badge/version-v0.9.5.post3-orange.svg)](https://github.com/pytransitions/tfism)
 [![Build Status](https://github.com/pytransitions/tfism/actions/workflows/pytest.yml/badge.svg)](https://github.com/pytransitions/tfism/actions?query=workflow%3Apytest)
 [![Coverage Status](https://coveralls.io/repos/github/pytransitions/tfism/badge.svg?branch=main)](https://coveralls.io/github/pytransitions/tfism?branch=main)
 [![PyPi](https://img.shields.io/pypi/v/tfism.svg)](https://pypi.org/project/tfism)
 [![Copr](https://img.shields.io/badge/dynamic/json?color=blue&label=copr&query=builds.latest.source_package.version&url=https%3A%2F%2Fcopr.fedorainfracloud.org%2Fapi_3%2Fpackage%3Fownername%3Daleneum%26projectname%3Dpython-tfism%26packagename%3Dpython-tfism%26with_latest_build%3DTrue)](https://copr.fedorainfracloud.org/coprs/aleneum/python-tfism/)
-[![GitHub commits](https://img.shields.io/github/commits-since/pytransitions/tfism/0.9.5.svg)](https://github.com/pytransitions/tfism/compare/0.9.5.post2...main)
+[![GitHub commits](https://img.shields.io/github/commits-since/pytransitions/tfism/0.9.5.svg)](https://github.com/pytransitions/tfism/compare/0.9.5.post3...main)
 [![License](https://img.shields.io/github/license/pytransitions/tfism.svg)](LICENSE)
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/pytransitions/tfism/main?filepath=examples%2FPlayground.ipynb)
 
