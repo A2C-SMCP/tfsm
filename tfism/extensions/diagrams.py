@@ -255,13 +255,14 @@ class GraphMachine(MarkupMachine):
         _LOGGER.info("Returning graph of the first model. In future releases, this method will return a combined graph of all models.")
         return self._get_graph(self.models[0], title, force_new, show_roi)
 
-    def add_model(self, model: Any, initial: Any | None = None) -> None:  # type: ignore[override]
+    def add_model(self, model: Any, initial: Any | None = None, *, callback_scope: Any = None) -> None:  # type: ignore[override]
         """Register a model with the state machine and initialize its graph.
 
         This override adds graph initialization to the parent class behavior.
+        See ``Machine.add_model`` for the semantics of ``callback_scope``.
         """
         models = listify(model)
-        super().add_model(models, initial)
+        super().add_model(models, initial, callback_scope=callback_scope)
         for mod in models:
             mod = self if mod is self.self_literal else mod
             if hasattr(mod, "get_graph"):

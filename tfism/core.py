@@ -602,6 +602,7 @@ class Machine:
         model_override: bool = False,
         on_exception: str | Callback | CallbackList | None = None,
         on_final: str | Callback | CallbackList | None = None,
+        callback_scope: Any = None,
         **kwargs: Any,
     ) -> None:
         """
@@ -649,6 +650,13 @@ class Machine:
                 This is also called when a transition raises an exception.
             on_exception: A callable called when an event raises an exception. If not set,
                 the exception will be raised instead.
+            callback_scope: The object against which *string* callback names (conditions, before/after,
+                prepare, on_enter/on_exit, ...) are resolved, and from which ``on_enter_<state>``-style
+                dynamic methods are auto-woven. When ``None`` (default), callbacks resolve against the
+                ``model`` itself, i.e. the legacy behavior is preserved exactly. Set this to decouple the
+                callback-providing object (e.g. a long-lived handler) from the state/trigger ``model``
+                (e.g. a per-run context). ``state`` and trigger convenience methods are always stamped
+                onto the ``model``; only callback resolution is redirected to ``callback_scope``.
 
             **kwargs additional arguments passed to next class in MRO. This can be ignored in most cases.
         """
@@ -676,6 +684,10 @@ class Machine:
         self._on_exception: CallbackList = []
         self._on_final: CallbackList = []
         self._initial: StateName | None = None
+        # Object(s) against which *string* callback names are resolved. Defaults to the model itself
+        # (legacy behavior) for any model that has no explicit scope registered (see ``_scope_for``).
+        self._default_callback_scope: Any = callback_scope
+        self._callback_scopes: dict[int, Any] = {}
 
         self.states: OrderedDict[StateName, State] = OrderedDict()
         self.events: OrderedDict[str, Event] = OrderedDict()
@@ -709,8 +721,17 @@ class Machine:
         if model:
             self.add_model(model)
 
-    def add_model(self, model: Any | list[Any], initial: StateName | None = None) -> "Machine":
-        """Register a model with the state machine, initializing triggers and callbacks."""
+    def add_model(self, model: Any | list[Any], initial: StateName | None = None, *, callback_scope: Any = None) -> "Machine":
+        """Register a model with the state machine, initializing triggers and callbacks.
+
+        Args:
+            model: The model (or list of models) to register. ``state`` and trigger convenience
+                methods are stamped onto each model.
+            initial: Optional initial state for the added model(s); falls back to the machine's initial.
+            callback_scope: Optional per-model override for callback name resolution. When ``None``,
+                the machine-level ``callback_scope`` (see ``Machine.__init__``) is used; when that is
+                also ``None``, callbacks resolve against the model itself (legacy behavior).
+        """
         models = listify(model)
 
         if initial is None:
@@ -718,9 +739,15 @@ class Machine:
                 raise ValueError("No initial state configured for machine, must specify when adding model.")
             initial = self.initial
 
+        scope = callback_scope if callback_scope is not None else self._default_callback_scope
+
         for mod in models:
             mod = self if mod is self.self_literal else mod
             if mod not in self.models:
+                # Register the callback scope first so it is available to _add_model_to_state below
+                # (used when auto-weaving on_enter_<state>/on_exit_<state> dynamic methods).
+                if scope is not None:
+                    self._callback_scopes[id(mod)] = scope
                 self._checked_assignment(mod, "trigger", partial(self._get_trigger, mod))
                 self._checked_assignment(mod, "may_trigger", partial(self._can_trigger, mod))
 
@@ -743,6 +770,7 @@ class Machine:
 
         for mod in models:
             self.models.remove(mod)
+            self._callback_scopes.pop(id(mod), None)
         if len(self._transition_queue) > 0:
             # the first element of the list is currently executed. Keeping it for further Machine._process(ing)
             self._transition_queue = deque(
@@ -1134,11 +1162,13 @@ class Machine:
             method_name = "is_%s_%s" % (self.model_attribute, state.name)
         self._checked_assignment(model, method_name, func)
 
-        # Add dynamic method callbacks (enter/exit) if there are existing bound methods in the model
-        # except if they are already mentioned in 'on_enter/exit' of the defined state
+        # Add dynamic method callbacks (enter/exit) if there are existing bound methods in the callback
+        # scope (the model itself unless a callback_scope was configured), except if they are already
+        # mentioned in 'on_enter/exit' of the defined state.
+        scope = self._scope_for(model)
         for callback in self.state_cls.dynamic_methods:
             method = f"{callback}_{state.name}"
-            if hasattr(model, method) and inspect.ismethod(getattr(model, method)) and method not in getattr(state, callback):
+            if hasattr(scope, method) and inspect.ismethod(getattr(scope, method)) and method not in getattr(state, callback):
                 state.add_callback(callback, method)
 
     def _checked_assignment(self, model: Any, name: str, func: Callable[..., Any]) -> None:
@@ -1492,10 +1522,22 @@ class Machine:
         else:
             func(*event_data.args, **event_data.kwargs)
 
+    def _scope_for(self, model: Any) -> Any:
+        """Return the object against which string callback names should be resolved for ``model``.
+
+        Defaults to ``model`` itself when no explicit ``callback_scope`` was registered, preserving the
+        legacy behavior where callbacks are resolved on the model. When a scope is registered (via the
+        ``callback_scope`` argument of ``Machine``/``add_model``), it is returned instead, decoupling the
+        callback-providing object from the state/trigger model.
+        """
+        return self._callback_scopes.get(id(model), model)
+
     @staticmethod
     def resolve_callable(func: str | Callback, event_data: "EventData") -> Callback:
         """Converts a model's property name, method name or a path to a callable into a callable.
-            If func is not a string it will be returned unaltered.
+            If func is not a string it will be returned unaltered. String names are resolved against the
+            callback scope of the processed model (``event_data.machine._scope_for(event_data.model)``),
+            which is the model itself unless a ``callback_scope`` was configured.
         Args:
             func (str or callable): Property name, method name or a path to a callable
             event_data (EventData): Currently processed event
@@ -1503,8 +1545,9 @@ class Machine:
             callable function resolved from string or func
         """
         if isinstance(func, str):
+            scope = event_data.machine._scope_for(event_data.model)
             try:
-                resolved_func = getattr(event_data.model, func)
+                resolved_func = getattr(scope, func)
                 if not callable(resolved_func):  # if a property or some other not callable attribute was passed
 
                     def func_wrapper(*_: Any, **__: Any) -> Any:  # properties cannot process parameters
@@ -1521,7 +1564,7 @@ class Machine:
                     return cast(Callback, getattr(module, func_name))
                 except (ImportError, AttributeError, ValueError):
                     raise AttributeError(
-                        "Callable with name '%s' could neither be retrieved from the passed model nor imported from a module." % func
+                        "Callable with name '%s' could neither be retrieved from the callback scope nor imported from a module." % func
                     )
         return func
 

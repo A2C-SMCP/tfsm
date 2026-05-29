@@ -163,17 +163,18 @@ class LockedMachine(Machine):
             self.model_context_map[id(model)] = self._model_context_map_store[model]
         del self._model_context_map_store
 
-    def add_model(self, model: Any, initial: Any = None, model_context: Any = None) -> Any:
+    def add_model(self, model: Any, initial: Any = None, model_context: Any = None, *, callback_scope: Any = None) -> Any:
         """Extends `tfsm.core.Machine.add_model` by `model_context` keyword.
         Args:
             model (list or object): A model (list) to be managed by the machine.
             initial (str, Enum or State): The initial state of the passed model[s].
             model_context (list or object): If passed, assign the context (list) to the machines
                 model specific context map.
+            callback_scope: See `tfsm.core.Machine.add_model`. Forwarded unchanged.
         """
         models = listify(model)
         model_context_list = listify(model_context) if model_context is not None else []
-        super().add_model(models, initial)
+        super().add_model(models, initial, callback_scope=callback_scope)
 
         for mod in models:
             mod = self if mod is self.self_literal else mod

@@ -532,12 +532,12 @@ class HierarchicalMachine(Machine):
     def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         self.scoped, self.states, self.events, self.prefix_path = self._stack.pop()  # type: ignore[assignment]
 
-    def add_model(self, model: Any, initial: Any | None = None) -> None:  # type: ignore[override]
+    def add_model(self, model: Any, initial: Any | None = None, *, callback_scope: Any = None) -> None:  # type: ignore[override]
         """Extends tfsm.core.Machine.add_model by applying a custom 'to' function to
-        the added model.
+        the added model. See ``Machine.add_model`` for the semantics of ``callback_scope``.
         """
         models = [self if mod is self.self_literal else mod for mod in listify(model)]
-        super().add_model(models, initial=initial)
+        super().add_model(models, initial=initial, callback_scope=callback_scope)
         initial_name = getattr(models[0], self.model_attribute)
         if hasattr(initial_name, "name"):
             initial_name = initial_name.name
@@ -1087,11 +1087,13 @@ class HierarchicalMachine(Machine):
         if self.state_cls.separator == "_":
             value = state.value if isinstance(state.value, Enum) else name
             self._checked_assignment(model, "is_%s" % name, partial(self.is_state, value, model))  # type: ignore[arg-type]
-            # Add dynamic method callbacks (enter/exit) if there are existing bound methods in the model
-            # except if they are already mentioned in 'on_enter/exit' of the defined state
+            # Add dynamic method callbacks (enter/exit) if there are existing bound methods in the callback
+            # scope (the model itself unless a callback_scope was configured), except if they are already
+            # mentioned in 'on_enter/exit' of the defined state.
+            scope = self._scope_for(model)
             for callback in self.state_cls.dynamic_methods:
                 method = f"{callback}_{name}"
-                if hasattr(model, method) and inspect.ismethod(getattr(model, method)) and method not in getattr(state, callback):
+                if hasattr(scope, method) and inspect.ismethod(getattr(scope, method)) and method not in getattr(state, callback):
                     state.add_callback(callback, method)
         else:
             path = name.split(self.state_cls.separator)  # type: ignore[union-attr]

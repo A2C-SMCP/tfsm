@@ -849,6 +849,7 @@ class AsyncMachine(Machine):
         model_override: bool = False,
         on_exception: str | Callback | CallbackList | None = None,
         on_final: str | Callback | CallbackList | None = None,
+        callback_scope: Any = None,
         **kwargs: Any,
     ) -> None:
 
@@ -871,6 +872,7 @@ class AsyncMachine(Machine):
             model_override=model_override,
             on_exception=on_exception,
             on_final=on_final,
+            callback_scope=callback_scope,
             **kwargs,
         )
 
@@ -879,10 +881,11 @@ class AsyncMachine(Machine):
         for model in listify(model):
             self.add_model(model)
 
-    def add_model(self, model: Any, initial: str | None = None) -> None:  # type: ignore[override]
+    def add_model(self, model: Any, initial: str | None = None, *, callback_scope: Any = None) -> None:  # type: ignore[override]
         """Add a model to the async machine.
 
         Overrides Machine.add_model to bind async versions of trigger and may_trigger methods.
+        See ``Machine.add_model`` for the semantics of ``callback_scope``.
         """
         if model is Machine.self_literal:
             model = self
@@ -892,10 +895,16 @@ class AsyncMachine(Machine):
                 raise ValueError("No initial state configured for machine, must specify when adding model.")
             initial = self.initial  # type: ignore[assignment]
 
+        scope = callback_scope if callback_scope is not None else self._default_callback_scope
+
         for mod in listify(model):
             mod = self if mod is self.self_literal else mod
             if mod not in self.models:
+                # Register the callback scope first so it is available to _add_model_to_state below.
+                if scope is not None:
+                    self._callback_scopes[id(mod)] = scope
                 # Bind async versions of trigger and may_trigger
+
                 async def _trigger_wrapper(trigger_name: str, *args: Any, model: Any = mod, **kwargs: Any) -> bool:
                     """Async wrapper for generic trigger."""
                     return await self._aget_trigger(model, trigger_name, *args, **kwargs)
@@ -1159,6 +1168,8 @@ class AsyncMachine(Machine):
         else:
             for mod in models:
                 self.models.remove(mod)
+        for mod in models:
+            self._callback_scopes.pop(id(mod), None)
         if len(self._transition_queue) > 0:
             queue = self._transition_queue
             new_queue = [queue.popleft()] + [e for e in queue if e.args[0].model not in models]

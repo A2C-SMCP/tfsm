@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.9.6 (May 2026)
+
+### Added
+
+- **`callback_scope`: decouple callback resolution from the state/trigger model**
+  - New keyword argument on `Machine`/`AsyncMachine`/`HierarchicalMachine`/`GraphMachine`/`LockedMachine`
+    constructors and on `add_model(..., callback_scope=...)` (keyword-only).
+  - String callback names (`conditions`, `before`/`after`/`prepare`, `on_enter`/`on_exit`, ...) and the
+    `on_enter_<state>` / `on_aenter_<state>` dynamic-method auto-weaving are resolved against the
+    `callback_scope` object instead of the `model`. The `state` attribute and trigger convenience
+    methods are still stamped onto the `model`.
+  - Enables the **per-run machine** pattern for concurrency: a single long-lived handler can drive
+    arbitrarily many concurrent runs, each using its own per-run context object as the `model`, while
+    business callbacks resolve against the shared handler. See `docs/per-run-machine.md`.
+  - Fully backward compatible: when `callback_scope` is `None` (default), callbacks resolve against the
+    `model` exactly as before.
+
 ## 0.9.5 (December 2024)
 
 **Python 3.11+ Modernization Release**
