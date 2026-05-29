@@ -1,5 +1,5 @@
 [tool.bumpversion]
-current_version = "0.9.5.post4"
+current_version = "0.9.6"
 parse = """(?x)
     ^
     (?P<major>0|[1-9]\\d*)\\.
@@ -27,7 +27,7 @@ serialize = [
 ]
 tag = false
 tag_name = "v{new_version}"
-commit = false
+commit = true
 message = "Bump version: {current_version} → {new_version}"
 
 [tool.bumpversion.parts.pre_l]
