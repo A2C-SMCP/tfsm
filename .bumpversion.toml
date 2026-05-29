@@ -25,18 +25,32 @@ serialize = [
     "{major}.{minor}.{patch}{post}{post_n}",
     "{major}.{minor}.{patch}",
 ]
-tag = false
+# 升级时自动提交并打 tag（带注释信息）；要求工作树干净。
+# Auto-commit and create an annotated tag on bump; requires a clean working tree.
+tag = true
+sign_tags = false
 tag_name = "v{new_version}"
+tag_message = "Bump version: {current_version} → {new_version}"
+allow_dirty = false
 commit = true
 message = "Bump version: {current_version} → {new_version}"
+commit_args = ""
 
+# 注意：pre_l 沿用 tfism 既有语义（optional_value="a"），使 bump major/minor/patch
+# 重置为正式版（1.0.0 / 0.10.0 / 0.9.7），契合 tfism 一贯的"直接发布正式版"惯例。
+# tfrobot 参考配置把 pre_l 设为预发布优先（每次 bump 产出 aN），适用于其 rc 发布流程，
+# 但会让 tfism 的每个 patch/minor/major 都带上 a1 后缀，故此处不照搬。
+# NOTE: pre_l keeps tfism's existing semantics (optional_value="a") so that major/minor/patch
+# bumps reset to a final release (1.0.0 / 0.10.0 / 0.9.7), matching tfism's direct-final
+# convention. The referenced tfrobot config is pre-release-first (every bump yields aN), which
+# suits its rc workflow but would suffix every tfism release with a1 — so it is intentionally
+# not copied verbatim here.
 [tool.bumpversion.parts.pre_l]
 values = ["a", "b", "rc"]
 optional_value = "a"
 
 [tool.bumpversion.parts.dev]
-first_value = 1
-independent = true
+values = [".dev"]
 
 [tool.bumpversion.parts.dev_n]
 first_value = 1
@@ -45,6 +59,7 @@ first_value = 1
 values = [".post"]
 
 [tool.bumpversion.parts.post_n]
+first_value = 1
 
 [[tool.bumpversion.files]]
 filename = "tfism/version.py"
